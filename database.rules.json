@@ -1,0 +1,90 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false,
+        "profile": {
+          ".write": "auth != null && auth.uid === $uid"
+        },
+        "wallet": { 
+          ".write": false 
+        }
+      }
+    },
+    "ledger": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
+    },
+    "games": {
+      ".read": true,
+      ".write": false,
+      "goldenbell": {
+        ".read": true,
+        ".write": true,
+        "$gameId": {
+          ".read": true,
+          ".write": true,
+          "participants": {
+            ".read": true,
+            ".write": true,
+            "$uid": {
+              ".read": true,
+              ".write": true
+            }
+          },
+          "roundResults": {
+            ".read": true,
+            ".write": true
+          },
+          "waitingRoom": {
+            ".read": true,
+            ".write": true
+          }
+        }
+      }
+    },
+    "goldenbell": {
+      ".read": true,
+      ".write": true,
+      "$gameId": {
+        ".read": true,
+        ".write": true,
+        "participants": {
+          ".read": true,
+          ".write": true,
+          "$uid": {
+            ".read": true,
+            ".write": true
+          }
+        },
+        "roundResults": {
+          ".read": true,
+          ".write": true
+        }
+      }
+    },
+    "goldenbellHistory": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
+    },
+    "gameHistory": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "oracle": {
+      ".read": true,
+      ".write": false
+    },
+    "config": {
+      ".read": true,
+      ".write": false
+    }
+  }
+}

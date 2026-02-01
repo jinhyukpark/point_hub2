@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "generate:config": "node scripts/generate-firebase-config.js",
+    "predeploy": "npm run generate:config"
+  },
+  "devDependencies": {
+    "dotenv": "^16.6.1",
+    "firebase-tools": "^15.5.1"
+  }
+}

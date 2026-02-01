@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PointHub - 테스트 함수</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .auth-status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .auth-status.not-authenticated {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
+        }
+
+        .auth-status.authenticated {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #28a745;
+        }
+
+        .user-info {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .test-section h2 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .test-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .helper-text {
+            font-size: 12px;
+            color: #666;
+        }
+
+        label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        input {
+            padding: 10px;
+            border: 2px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: white;
+        }
+
+        .btn-primary {
+            background: #667eea;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .result.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #004085;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 PointHub 테스트 함수</h1>
+        <p class="subtitle">로컬에서 게임 정산 테스트 함수를 호출할 수 있습니다.</p>
+
+        <!-- 인증 상태 -->
+        <div id="authStatus" class="auth-status not-authenticated">
+            <div>⏳ Firebase 초기화 대기 중...</div>
+            <div id="userInfo" class="user-info" style="display: none;"></div>
+        </div>
+
+        <!-- Matching Game 테스트 -->
+        <div class="test-section">
+            <h2>🎯 Matching Game 테스트</h2>
+            <div class="info-box">
+                <strong>testMatchingGameSettlement:</strong> Matching 게임을 종료 상태로 변경하고 결과를 계산합니다.
+            </div>
+            <form class="test-form" id="matchingForm">
+                <div class="form-group">
+                    <label for="matchingGameId">Game ID *</label>
+                    <input type="text" id="matchingGameId" placeholder="예: matching_order_1764374403788" required>
+                </div>
+                <button type="submit" class="btn-primary">
+                    정산 실행
+                </button>
+            </form>
+            <div id="matchingResult"></div>
+        </div>
+
+        <!-- Matching Game Fixed Winning Numbers 테스트 -->
+        <div class="test-section">
+            <h2>🎲 Matching Game Fixed Winning Numbers 테스트</h2>
+            <div class="info-box">
+                <strong>testMatchingGameWithWinningNumbers:</strong> Matching 게임에서 최종 결과(winningNumbers)를 지정하고 정산합니다.
+                <br><br>
+                <strong>Winning Numbers:</strong> [BTC, ETH, XRP, BNB, SOL, DOGE, TRX] 순서로 7개 숫자 (0-9)
+            </div>
+            <form class="test-form" id="matchingFixedWinningForm">
+                <div class="form-group">
+                    <label for="matchingFixedGameId">Game ID *</label>
+                    <input type="text" id="matchingFixedGameId" placeholder="예: matching_order_1764374403788" required>
+                </div>
+                <div class="form-group">
+                    <label>Winning Numbers * (7개 숫자, 0-9)</label>
+                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 5px;">
+                        <input type="number" id="winningBTC" placeholder="BTC" min="0" max="9" required style="text-align: center;">
+                        <input type="number" id="winningETH" placeholder="ETH" min="0" max="9" required style="text-align: center;">
+                        <input type="number" id="winningXRP" placeholder="XRP" min="0" max="9" required style="text-align: center;">
+                        <input type="number" id="winningBNB" placeholder="BNB" min="0" max="9" required style="text-align: center;">
+                        <input type="number" id="winningSOL" placeholder="SOL" min="0" max="9" required style="text-align: center;">
+                        <input type="number" id="winningDOGE" placeholder="DOGE" min="0" max="9" required style="text-align: center;">
+                        <input type="number" id="winningTRX" placeholder="TRX" min="0" max="9" required style="text-align: center;">
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                        순서: BTC → ETH → XRP → BNB → SOL → DOGE → TRX
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary">
+                    고정 Winning Numbers로 정산 실행
+                </button>
+            </form>
+            <div id="matchingFixedWinningResult"></div>
+        </div>
+
+        <!-- Cube Game 테스트 -->
+        <div class="test-section">
+            <h2>🎲 Cube Game 테스트</h2>
+            <div class="info-box">
+                <strong>사용 중지:</strong> 수동 정산 로직이 고정 Move 테스트로 통합되었습니다. 아래 버튼은 더 이상 실 행되지 않습니다.
+            </div>
+            <form class="test-form" id="cubeForm">
+                <div class="form-group">
+                    <label for="cubeGameId">Game ID *</label>
+                    <input type="text" id="cubeGameId" placeholder="예: cube_1764374403788" required>
+                </div>
+                <button type="submit" class="btn-primary">
+                    정산 실행 (비활성화)
+                </button>
+            </form>
+            <div id="cubeResult"></div>
+        </div>
+
+        <!-- Cube Game Fixed Move 테스트 -->
+        <div class="test-section">
+            <h2>🎯 Cube Game Fixed Move 테스트</h2>
+            <div class="info-box">
+                <strong>testCubeGameWithFixedMove:</strong> Cube 게임에서 MoveDirection과 MoveDistance를 고정하고 정산합니다.
+                <br><br>
+                <strong>Direction:</strong> -1 (왼쪽) 또는 1 (오른쪽)
+                <br>
+                <strong>MoveDistance:</strong> 0 이상의 숫자
+                <br><br>
+                <strong>빈 Pot 처리:</strong> 필요 시 비어있는 모든 Pot을 지정한 테스트 유저로 자동 채워 정산할 수 있습니다. 기존 참가자는 유지됩니다.
+            </div>
+            <form class="test-form" id="cubeFixedMoveForm">
+                <div class="form-group">
+                    <label for="cubeFixedMoveGameId">Game ID (선택사항, 비우면 현재 활성 게임 사용)</label>
+                    <input type="text" id="cubeFixedMoveGameId" placeholder="예: cube_1764374403788">
+                </div>
+                <div class="form-group">
+                    <label for="cubeDirection">Direction * (-1: 왼쪽, 1: 오른쪽)</label>
+                    <input type="number" id="cubeDirection" placeholder="-1 또는 1" min="-1" max="1" step="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="cubeMoveDistance">Move Distance * (0 이상의 숫자)</label>
+                    <input type="number" id="cubeMoveDistance" placeholder="예: 123" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="cubeFillEmpty" checked>
+                        빈 Pot을 테스트용 참가자로 자동 채우기
+                    </label>
+                    <div class="helper-text">이미 참여한 Pot은 유지되며, 비어있는 위치만 더미 참가자로 채웁니다.</div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="cubeUseAuthFiller">
+                        현재 로그인한 계정을 테스트 유저로 사용
+                    </label>
+                    <div class="helper-text">체크하지 않으면 아래 UID/Email 정보로 생성된 가상 참가자가 사용됩니다.</div>
+                </div>
+                <div class="form-group" id="cubeFillerFields">
+                    <label for="cubeFillerUid">테스트 유저 UID (선택)</label>
+                    <input type="text" id="cubeFillerUid" placeholder="예: cube_test_user" value="cube_test_user">
+                    <label for="cubeFillerEmail">테스트 유저 Email (선택)</label>
+                    <input type="email" id="cubeFillerEmail" placeholder="예: cube_test_user@pointhub.dev" value="cube_test_user@pointhub.dev">
+                </div>
+                <button type="submit" class="btn-primary">
+                    고정 Move로 정산 실행
+                </button>
+            </form>
+            <div id="cubeFixedMoveResult"></div>
+        </div>
+
+        <!-- Cube Game Fill 테스트 -->
+        <div class="test-section">
+            <h2>👥 Cube Game Fill 테스트</h2>
+            <div class="info-box">
+                <strong>testFillCubeGame:</strong> 현재 활성 Cube 게임을 더미 참가자로 가득 채웁니다 (2047명까지).
+            </div>
+            <form class="test-form" id="cubeFillForm">
+                <button type="submit" class="btn-success">
+                    게임 채우기 실행
+                </button>
+            </form>
+            <div id="cubeFillResult"></div>
+        </div>
+
+        <!-- Cube Game Reset 테스트 -->
+        <div class="test-section">
+            <h2>🔄 Cube Game Reset 테스트</h2>
+            <div class="info-box">
+                <strong>testResetCubeGame:</strong> 현재 실행 중인 Cube 게임을 없애고 강제로 새로운 게임을 생성합니다.
+            </div>
+            <form class="test-form" id="cubeResetForm">
+                <button type="submit" class="btn-danger">
+                    게임 리셋 및 새 게임 생성
+                </button>
+            </form>
+            <div id="cubeResetResult"></div>
+        </div>
+
+        <!-- VIP 설정 테스트 -->
+        <div class="test-section">
+            <h2>👑 VIP 설정 테스트</h2>
+            <div class="info-box">
+                <strong>setAllUsersVip:</strong> 모든 기존 유저의 membership을 'vip'로 설정합니다.
+                <br><br>
+                <strong>주의:</strong> 이 작업은 되돌릴 수 없으며, 모든 유저가 VIP 게임에 참여할 수 있게 됩니다.
+            </div>
+            <form class="test-form" id="setAllUsersVipForm">
+                <button type="submit" class="btn-success">
+                    👑 모든 유저를 VIP로 설정
+                </button>
+            </form>
+            <div id="setAllUsersVipResult"></div>
+        </div>
+
+        <!-- 전체 데이터 리셋 테스트 -->
+        <div class="test-section" style="border: 3px solid #dc3545; background: #fff5f5;">
+            <h2 style="color: #dc3545;">⚠️ 전체 데이터 리셋 테스트</h2>
+            <div class="info-box" style="background: #ffe6e6; border-color: #ff9999;">
+                <strong style="color: #dc3545;">testResetAllData:</strong> 다음 데이터를 모두 삭제합니다:
+                <ul style="margin-top: 10px; margin-left: 20px; color: #721c24;">
+                    <li>모든 gameHistory (모든 유저의 게임 히스토리)</li>
+                    <li>모든 Matching 게임 (Order / Random 게임)</li>
+                    <li>모든 Cube 게임</li>
+                    <li>모든 유저 데이터</li>
+                    <li>모든 Ledger 기록</li>
+                </ul>
+                <strong style="color: #dc3545; display: block; margin-top: 10px;">⚠️ 경고: 이 작업은 되돌릴 수 없습니다!</strong>
+            </div>
+            <form class="test-form" id="resetAllDataForm">
+                <button type="submit" class="btn-danger" style="background: #dc3545; font-size: 18px; padding: 15px 30px;">
+                    🗑️ 모든 데이터 삭제
+                </button>
+            </form>
+            <div id="resetAllDataResult"></div>
+        </div>
+    </div>
+
+    <!-- Firebase Configuration (loaded from .env) -->
+    <script src="./firebase-config.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
+
+        // Firebase 설정 (firebase-config.js에서 로드)
+        const firebaseConfig = window.firebaseConfig;
+
+        // Firebase 초기화
+        console.log('🔥 Firebase 초기화 시작...');
+        const app = initializeApp(firebaseConfig);
+        console.log('✅ Firebase App 초기화 완료');
+        
+        const auth = getAuth(app);
+        console.log('✅ Firebase Auth 초기화 완료');
+        
+        const functions = getFunctions(app, 'us-central1'); // us-central1 리전 지정
+        console.log('✅ Firebase Functions 초기화 완료 (리전: us-central1)');
+
+        // 전역 변수로 설정
+        window.firebaseAuth = auth;
+        window.firebaseFunctions = functions;
+        window.httpsCallable = httpsCallable;
+
+        // 인증 상태 확인
+        const authStatusDiv = document.getElementById('authStatus');
+        const userInfoDiv = document.getElementById('userInfo');
+        
+        // 초기화 상태 업데이트
+        authStatusDiv.innerHTML = `
+            <div>✅ Firebase 초기화 완료</div>
+            <div style="margin-top: 5px; font-size: 12px; color: #666;">인증 상태 확인 중...</div>
+        `;
+
+        let loginErrorDiv = null;
+
+        function updateAuthStatus(user) {
+            if (user) {
+                authStatusDiv.className = 'auth-status authenticated';
+                authStatusDiv.innerHTML = `
+                    <div>✅ 인증 완료</div>
+                    <div class="user-info">이메일: ${user.email || 'N/A'}</div>
+                    <div class="user-info">UID: ${user.uid}</div>
+                    <button onclick="handleLogout()" style="margin-top: 10px; padding: 5px 15px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">로그아웃</button>
+                `;
+                if (loginErrorDiv) {
+                    loginErrorDiv.remove();
+                    loginErrorDiv = null;
+                }
+            } else {
+                authStatusDiv.className = 'auth-status not-authenticated';
+                authStatusDiv.innerHTML = `
+                    <div>⚠️ 로그인이 필요합니다.</div>
+                    <div id="loginForm" style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;">
+                        <input type="email" id="loginEmail" placeholder="이메일" style="padding: 8px; border: 2px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                        <input type="password" id="loginPassword" placeholder="비밀번호" style="padding: 8px; border: 2px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                        <button id="loginButton" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">로그인</button>
+                    </div>
+                    <div id="loginError" style="margin-top: 10px; display: none;"></div>
+                `;
+                
+                // 로그인 버튼에 이벤트 리스너 추가
+                setTimeout(() => {
+                    const loginButton = document.getElementById('loginButton');
+                    const loginEmail = document.getElementById('loginEmail');
+                    const loginPassword = document.getElementById('loginPassword');
+                    const loginErrorContainer = document.getElementById('loginError');
+                    
+                    if (loginButton) {
+                        loginButton.addEventListener('click', async () => {
+                            await handleLogin();
+                        });
+                        
+                        // Enter 키로 로그인
+                        if (loginEmail) {
+                            loginEmail.addEventListener('keypress', (e) => {
+                                if (e.key === 'Enter') {
+                                    handleLogin();
+                                }
+                            });
+                        }
+                        
+                        if (loginPassword) {
+                            loginPassword.addEventListener('keypress', (e) => {
+                                if (e.key === 'Enter') {
+                                    handleLogin();
+                                }
+                            });
+                        }
+                    }
+                }, 100);
+            }
+        }
+
+        async function handleLogin() {
+            const emailInput = document.getElementById('loginEmail');
+            const passwordInput = document.getElementById('loginPassword');
+            const errorContainer = document.getElementById('loginError');
+            const loginButton = document.getElementById('loginButton');
+            
+            if (!emailInput || !passwordInput) {
+                console.error('로그인 입력 필드를 찾을 수 없습니다.');
+                return;
+            }
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!email || !password) {
+                if (errorContainer) {
+                    errorContainer.style.display = 'block';
+                    errorContainer.style.background = '#f8d7da';
+                    errorContainer.style.color = '#721c24';
+                    errorContainer.style.padding = '10px';
+                    errorContainer.style.borderRadius = '4px';
+                    errorContainer.style.fontSize = '13px';
+                    errorContainer.textContent = '이메일과 비밀번호를 모두 입력해주세요.';
+                }
+                return;
+            }
+
+            // 로딩 상태
+            if (loginButton) {
+                loginButton.disabled = true;
+                loginButton.textContent = '로그인 중...';
+            }
+
+            try {
+                console.log('로그인 시도 중...', email);
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                console.log('로그인 성공:', userCredential.user.email);
+                
+                if (errorContainer) {
+                    errorContainer.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('로그인 오류:', error);
+                
+                let errorMessage = '로그인에 실패했습니다.';
+                
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        errorMessage = '등록되지 않은 이메일입니다.';
+                        break;
+                    case 'auth/wrong-password':
+                        errorMessage = '비밀번호가 올바르지 않습니다.';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = '유효하지 않은 이메일 형식입니다.';
+                        break;
+                    case 'auth/user-disabled':
+                        errorMessage = '비활성화된 계정입니다.';
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+                        break;
+                    case 'auth/network-request-failed':
+                        errorMessage = '네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.';
+                        break;
+                    default:
+                        errorMessage = `로그인 실패: ${error.message || error.code}`;
+                }
+                
+                if (errorContainer) {
+                    errorContainer.style.display = 'block';
+                    errorContainer.style.background = '#f8d7da';
+                    errorContainer.style.color = '#721c24';
+                    errorContainer.style.padding = '10px';
+                    errorContainer.style.borderRadius = '4px';
+                    errorContainer.style.fontSize = '13px';
+                    errorContainer.textContent = errorMessage;
+                }
+            } finally {
+                if (loginButton) {
+                    loginButton.disabled = false;
+                    loginButton.textContent = '로그인';
+                }
+            }
+        }
+
+        window.handleLogin = handleLogin;
+        window.handleLogout = async function() {
+            try {
+                await signOut(auth);
+                console.log('로그아웃 완료');
+            } catch (error) {
+                console.error('로그아웃 오류:', error);
+                alert(`로그아웃 실패: ${error.message}`);
+            }
+        };
+
+        // 인증 상태 변경 리스너
+        onAuthStateChanged(auth, (user) => {
+            console.log('인증 상태 변경:', user ? `로그인됨: ${user.email}` : '로그아웃됨');
+            updateAuthStatus(user);
+        }, (error) => {
+            console.error('인증 상태 확인 오류:', error);
+            authStatusDiv.className = 'auth-status not-authenticated';
+            authStatusDiv.innerHTML = `
+                <div>❌ Firebase 인증 오류가 발생했습니다.</div>
+                <div style="margin-top: 10px; font-size: 12px; color: #666;">${error.message}</div>
+            `;
+        });
+
+        // 결과 표시 함수
+        function showResult(containerId, result, isError = false) {
+            const container = document.getElementById(containerId);
+            container.className = `result ${isError ? 'error' : 'success'}`;
+            container.textContent = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+        }
+
+        // Matching Game 테스트
+        document.getElementById('matchingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const gameId = document.getElementById('matchingGameId').value;
+            const button = e.target.querySelector('button[type="submit"]');
+            const originalText = button.textContent;
+
+            if (!auth.currentUser) {
+                showResult('matchingResult', '❌ 로그인이 필요합니다.', true);
+                return;
+            }
+
+            button.disabled = true;
+            button.innerHTML = '실행 중...<span class="loading"></span>';
+
+            try {
+                const testMatchingGameSettlement = httpsCallable(functions, 'testMatchingGameSettlement');
+                const result = await testMatchingGameSettlement({ gameId });
+
+                showResult('matchingResult', `✅ 성공!\n\n${JSON.stringify(result.data, null, 2)}`);
+            } catch (error) {
+                showResult('matchingResult', `❌ 오류 발생:\n${error.message}\n\n${error.stack || ''}`, true);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        });
+
+        // Matching Game Fixed Winning Numbers 테스트
+        document.getElementById('matchingFixedWinningForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const gameId = document.getElementById('matchingFixedGameId').value;
+            const winningNumbers = [
+                parseInt(document.getElementById('winningBTC').value),
+                parseInt(document.getElementById('winningETH').value),
+                parseInt(document.getElementById('winningXRP').value),
+                parseInt(document.getElementById('winningBNB').value),
+                parseInt(document.getElementById('winningSOL').value),
+                parseInt(document.getElementById('winningDOGE').value),
+                parseInt(document.getElementById('winningTRX').value)
+            ];
+            const button = e.target.querySelector('button[type="submit"]');
+            const originalText = button.textContent;
+
+            if (!auth.currentUser) {
+                showResult('matchingFixedWinningResult', '❌ 로그인이 필요합니다.', true);
+                return;
+            }
+
+            // 검증
+            if (winningNumbers.some(num => isNaN(num) || num < 0 || num > 9)) {
+                showResult('matchingFixedWinningResult', '❌ 모든 숫자는 0-9 사이의 정수여야 합니다.', true);
+                return;
+            }
+
+            button.disabled = true;
+            button.innerHTML = '실행 중...<span class="loading"></span>';
+
+            try {
+                const testMatchingGameWithWinningNumbers = httpsCallable(functions, 'testMatchingGameWithWinningNumbers');
+                const result = await testMatchingGameWithWinningNumbers({ 
+                    gameId,
+                    winningNumbers
+                });
+
+                const coinOrder = ['BTC', 'ETH', 'XRP', 'BNB', 'SOL', 'DOGE', 'TRX'];
+                const winningNumbersText = winningNumbers.map((num, idx) => `${coinOrder[idx]}: ${num}`).join(', ');
+                
+                showResult('matchingFixedWinningResult', 
+                    `✅ 성공!\n\n게임 타입: ${result.data.gameType}\n당첨 번호: [${winningNumbers.join(', ')}]\n(${winningNumbersText})\n\n${JSON.stringify(result.data, null, 2)}`);
+            } catch (error) {
+                showResult('matchingFixedWinningResult', `❌ 오류 발생:\n${error.message}\n\n${error.stack || ''}`, true);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        });
+
+        // Cube Game 테스트
+        document.getElementById('cubeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showResult('cubeResult', '⚠️ 이 테스트는 비활성화되었습니다. "Cube Game Fixed Move 테스트" 섹션을 사용하세요.', true);
+        });
+
+        // Cube Game Fixed Move 테스트
+        const cubeFillCheckbox = document.getElementById('cubeFillEmpty');
+        const cubeUseAuthCheckbox = document.getElementById('cubeUseAuthFiller');
+        const cubeFillerFields = document.getElementById('cubeFillerFields');
+
+        function toggleCubeFillerFields() {
+            if (!cubeFillerFields) return;
+            const shouldShow = cubeFillCheckbox.checked && !cubeUseAuthCheckbox.checked;
+            cubeFillerFields.style.display = shouldShow ? 'flex' : 'none';
+        }
+
+        cubeFillCheckbox.addEventListener('change', toggleCubeFillerFields);
+        cubeUseAuthCheckbox.addEventListener('change', toggleCubeFillerFields);
+        toggleCubeFillerFields();
+
+        document.getElementById('cubeFixedMoveForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const gameId = document.getElementById('cubeFixedMoveGameId').value.trim();
+            const direction = parseInt(document.getElementById('cubeDirection').value);
+            const moveDistance = parseInt(document.getElementById('cubeMoveDistance').value);
+            const fillEmptyPositions = document.getElementById('cubeFillEmpty').checked;
+            const useAuthFiller = document.getElementById('cubeUseAuthFiller').checked;
+            const fillerUid = document.getElementById('cubeFillerUid').value.trim();
+            const fillerEmail = document.getElementById('cubeFillerEmail').value.trim();
+            const button = e.target.querySelector('button[type="submit"]');
+            const originalText = button.textContent;
+
+            if (!auth.currentUser) {
+                showResult('cubeFixedMoveResult', '❌ 로그인이 필요합니다.', true);
+                return;
+            }
+
+            if (direction !== -1 && direction !== 1) {
+                showResult('cubeFixedMoveResult', '❌ Direction은 -1 (왼쪽) 또는 1 (오른쪽)이어야 합니다.', true);
+                return;
+            }
+
+            if (moveDistance < 0) {
+                showResult('cubeFixedMoveResult', '❌ MoveDistance는 0 이상이어야 합니다.', true);
+                return;
+            }
+
+            button.disabled = true;
+            button.innerHTML = '실행 중...<span class="loading"></span>';
+
+            try {
+                const testCubeGameWithFixedMove = httpsCallable(functions, 'testCubeGameWithFixedMove');
+                const payload = { 
+                    gameId: gameId || undefined,
+                    direction,
+                    moveDistance
+                };
+
+                if (fillEmptyPositions) {
+                    payload.fillEmptyPositions = true;
+                    if (useAuthFiller) {
+                        payload.useAuthUserAsFiller = true;
+                    } else {
+                        if (fillerUid) {
+                            payload.fillerUid = fillerUid;
+                        }
+                        if (fillerEmail) {
+                            payload.fillerEmail = fillerEmail;
+                        }
+                    }
+                }
+
+                const result = await testCubeGameWithFixedMove(payload);
+                const fillSummary = result?.data?.fillResult
+                    ? `필드된 빈 Pot: ${result.data.fillResult.created}개\n`
+                    : '';
+
+                showResult('cubeFixedMoveResult', `✅ 성공!\n${fillSummary}\n${JSON.stringify(result.data, null, 2)}`);
+            } catch (error) {
+                showResult('cubeFixedMoveResult', `❌ 오류 발생:\n${error.message}\n\n${error.stack || ''}`, true);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        });
+
+        // Cube Game Fill 테스트
+        document.getElementById('cubeFillForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const button = e.target.querySelector('button[type="submit"]');
+            const originalText = button.textContent;
+
+            if (!auth.currentUser) {
+                showResult('cubeFillResult', '❌ 로그인이 필요합니다.', true);
+                return;
+            }
+
+            button.disabled = true;
+            button.innerHTML = '실행 중...<span class="loading"></span>';
+
+            try {
+                const testFillCubeGame = httpsCallable(functions, 'testFillCubeGame');
+                const result = await testFillCubeGame({});
+
+                showResult('cubeFillResult', `✅ 성공!\n\n${JSON.stringify(result.data, null, 2)}`);
+            } catch (error) {
+                showResult('cubeFillResult', `❌ 오류 발생:\n${error.message}\n\n${error.stack || ''}`, true);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        });
+
+        // Cube Game Reset 테스트
+        document.getElementById('cubeResetForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const button = e.target.querySelector('button[type="submit"]');
+            const originalText = button.textContent;
+
+            if (!auth.currentUser) {
+                showResult('cubeResetResult', '❌ 로그인이 필요합니다.', true);
+                return;
+            }
+
+            // 확인 메시지
+            if (!confirm('현재 실행 중인 Cube 게임을 종료하고 새 게임을 생성하시겠습니까?')) {
+                return;
+            }
+
+            button.disabled = true;
+            button.innerHTML = '실행 중...<span class="loading"></span>';
+
+            try {
+                const testResetCubeGame = httpsCallable(functions, 'testResetCubeGame');
+                const result = await testResetCubeGame({});
+
+                showResult('cubeResetResult', `✅ 성공!\n\n${JSON.stringify(result.data, null, 2)}`);
+            } catch (error) {
+                showResult('cubeResetResult', `❌ 오류 발생:\n${error.message}\n\n${error.stack || ''}`, true);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        });
+
+        // VIP 설정 테스트
+        document.getElementById('setAllUsersVipForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const button = e.target.querySelector('button[type="submit"]');
+            const originalText = button.textContent;
+
+            if (!auth.currentUser) {
+                showResult('setAllUsersVipResult', '❌ 로그인이 필요합니다.', true);
+                return;
+            }
+
+            // 확인 메시지
+            if (!confirm('모든 기존 유저를 VIP로 설정하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
+                return;
+            }
+
+            button.disabled = true;
+            button.innerHTML = '설정 중...<span class="loading"></span>';
+
+            try {
+                const setAllUsersVip = httpsCallable(functions, 'setAllUsersVip');
+                const result = await setAllUsersVip({});
+
+                showResult('setAllUsersVipResult', 
+                    `✅ 성공!\n\n${result.data.message}\n\n업데이트된 유저 수: ${result.data.usersUpdated}명\n\n${JSON.stringify(result.data, null, 2)}`);
+            } catch (error) {
+                showResult('setAllUsersVipResult', `❌ 오류 발생:\n${error.message}\n\n${error.stack || ''}`, true);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        });
+
+        // 전체 데이터 리셋 테스트
+        document.getElementById('resetAllDataForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const button = e.target.querySelector('button[type="submit"]');
+            const originalText = button.textContent;
+
+            if (!auth.currentUser) {
+                showResult('resetAllDataResult', '❌ 로그인이 필요합니다.', true);
+                return;
+            }
+
+            // 강력한 확인 메시지 (2단계 확인)
+            const firstConfirm = confirm(
+                '⚠️ 경고: 모든 데이터가 삭제됩니다!\n\n' +
+                '다음 데이터가 영구적으로 삭제됩니다:\n' +
+                '• 모든 gameHistory\n' +
+                '• 모든 Matching 게임 (Order/Random)\n' +
+                '• 모든 Cube 게임\n' +
+                '• 모든 유저 데이터\n' +
+                '• 모든 Ledger 기록\n\n' +
+                '이 작업은 되돌릴 수 없습니다!\n\n' +
+                '계속하시겠습니까?'
+            );
+
+            if (!firstConfirm) {
+                return;
+            }
+
+            const secondConfirm = confirm(
+                '⚠️ 최종 확인\n\n' +
+                '정말로 모든 데이터를 삭제하시겠습니까?\n\n' +
+                '이 작업은 되돌릴 수 없습니다!'
+            );
+
+            if (!secondConfirm) {
+                return;
+            }
+
+            button.disabled = true;
+            button.innerHTML = '삭제 중...<span class="loading"></span>';
+
+            try {
+                const testResetAllData = httpsCallable(functions, 'testResetAllData');
+                const result = await testResetAllData({});
+
+                const gamesCreatedText = result.data.gamesCreated
+                    ? `\n\n생성된 게임:\n` +
+                      `• Order 게임: ${result.data.gamesCreated.orderGames.created}개\n` +
+                      `• Random 게임: ${result.data.gamesCreated.randomGames.created}개\n` +
+                      `• Cube 게임: ${result.data.gamesCreated.cubeGame.created ? '1개' : '0개'}\n` +
+                      `총 생성: ${result.data.totalGamesCreated || 0}개`
+                    : '';
+
+                const resultText = result.data.success
+                    ? `✅ 성공!\n\n${result.data.message}${gamesCreatedText}\n\n삭제된 항목:\n${JSON.stringify(result.data.results, null, 2)}`
+                    : `⚠️ 완료 (일부 오류 발생)\n\n${result.data.message}${gamesCreatedText}\n\n결과:\n${JSON.stringify(result.data.results, null, 2)}`;
+
+                showResult('resetAllDataResult', resultText, !result.data.success);
+            } catch (error) {
+                showResult('resetAllDataResult', `❌ 오류 발생:\n${error.message}\n\n${error.stack || ''}`, true);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        });
+
+        console.log('✅ 테스트 페이지 초기화 완료');
+    </script>
+</body>
+</html>

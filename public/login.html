@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PointHub - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Merriweather', serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Unity Canvas Scaler: Match Width or Height = Height, Reference Resolution = 1080x2160 */
+        :root {
+            --scale-factor: calc(100vh / 2160px);
+            --popup-width: calc(800px * var(--scale-factor));
+            --popup-height: calc(1000px * var(--scale-factor));
+            --input-width: calc(650px * var(--scale-factor));
+            --input-height: calc(175px * var(--scale-factor));
+            --button-width: calc(518px * var(--scale-factor));
+            --button-height: calc(145px * var(--scale-factor));
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&display=swap');
+
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: url('./img/bg.png') no-repeat center center;
+            background-size: cover;
+            background-attachment: fixed;
+            z-index: -1;
+        }
+
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-popup {
+            border-image: url('./img/login_popup_bg.png') 50 fill;
+            border-image-slice: 50 fill;
+            border-image-width: calc(50px * var(--scale-factor));
+            border-image-outset: 0;
+            border-image-repeat: stretch;
+            width: var(--popup-width);
+            height: var(--popup-height);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: calc(100px * var(--scale-factor)) calc(75px * var(--scale-factor));
+        }
+
+        .login-title {
+            color: #ffffff;
+            font-size: calc(60px * var(--scale-factor));
+            font-weight: bold;
+            margin-bottom: calc(60px * var(--scale-factor));
+            text-align: center;
+            text-shadow: calc(2px * var(--scale-factor)) calc(2px * var(--scale-factor)) calc(4px * var(--scale-factor)) rgba(0,0,0,0.5);
+            letter-spacing: calc(4px * var(--scale-factor));
+        }
+
+        .input-container {
+            position: relative;
+            margin-bottom: calc(40px * var(--scale-factor));
+            width: var(--input-width);
+            height: var(--input-height);
+        }
+
+        .input-label {
+            position: absolute;
+            top: calc(40px * var(--scale-factor));
+            left: calc(50px * var(--scale-factor));
+            color: rgba(255, 255, 255, 0.5);
+            font-size: calc(24px * var(--scale-factor));
+            font-weight: 400;
+            text-shadow: calc(1px * var(--scale-factor)) calc(1px * var(--scale-factor)) calc(2px * var(--scale-factor)) rgba(0,0,0,0.5);
+            letter-spacing: calc(1px * var(--scale-factor));
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .input-field {
+            width: var(--input-width);
+            height: var(--input-height);
+            border-image: url('./img/UI_Email.png') 25 fill;
+            border-image-slice: 25 fill;
+            border-image-width: calc(25px * var(--scale-factor));
+            border-image-outset: 0;
+            border-image-repeat: stretch;
+            background: transparent;
+            color: #ffffff;
+            font-size: calc(44px * var(--scale-factor));
+            padding: calc(80px * var(--scale-factor)) calc(40px * var(--scale-factor)) calc(40px * var(--scale-factor)) calc(40px * var(--scale-factor));
+            outline: none;
+            font-family: 'Merriweather', serif;
+            transition: filter 0.3s ease;
+        }
+
+        .input-field.password {
+            border-image: url('./img/UI_Password.png') 25 fill;
+            border-image-slice: 25 fill;
+            border-image-width: calc(25px * var(--scale-factor));
+            border-image-outset: 0;
+            border-image-repeat: stretch;
+        }
+
+        .input-field:focus {
+            filter: brightness(1.2) drop-shadow(0 0 calc(10px * var(--scale-factor)) rgba(139, 92, 246, 0.5));
+        }
+
+        .input-field.password:focus {
+            filter: brightness(1.2) drop-shadow(0 0 calc(10px * var(--scale-factor)) rgba(6, 182, 212, 0.5));
+        }
+
+        /* 브라우저 자동완성 배경 제거 */
+        .input-field:-webkit-autofill,
+        .input-field:-webkit-autofill:hover,
+        .input-field:-webkit-autofill:focus,
+        .input-field:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+            -webkit-text-fill-color: #ffffff !important;
+            background: transparent !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        .login-button {
+            border-image: url('./img/login_button.png') 30 fill;
+            border-image-slice: 30 fill;
+            border-image-width: calc(30px * var(--scale-factor));
+            border-image-outset: 0;
+            border-image-repeat: stretch;
+            background: transparent;
+            width: var(--button-width);
+            height: var(--button-height);
+            cursor: pointer;
+            color: #ffffff;
+            font-size: calc(32px * var(--scale-factor));
+            font-weight: bold;
+            text-shadow: calc(1px * var(--scale-factor)) calc(1px * var(--scale-factor)) calc(2px * var(--scale-factor)) rgba(0,0,0,0.5);
+            margin-top: calc(40px * var(--scale-factor));
+            transition: transform 0.2s ease, filter 0.2s ease;
+        }
+
+        .login-button:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+
+        .login-button:active {
+            transform: scale(0.95);
+        }
+
+        .login-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            font-size: calc(14px * var(--scale-factor));
+            margin-top: calc(10px * var(--scale-factor));
+            text-align: center;
+            text-shadow: calc(1px * var(--scale-factor)) calc(1px * var(--scale-factor)) calc(2px * var(--scale-factor)) rgba(0,0,0,0.5);
+        }
+
+        .loading {
+            display: none;
+            color: #66ccff;
+            font-size: calc(14px * var(--scale-factor));
+            margin-top: calc(10px * var(--scale-factor));
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: calc(18px * var(--scale-factor));
+            text-decoration: none;
+            margin-top: calc(20px * var(--scale-factor));
+            text-shadow: calc(1px * var(--scale-factor)) calc(1px * var(--scale-factor)) calc(2px * var(--scale-factor)) rgba(0,0,0,0.5);
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: #66ccff;
+            text-decoration: underline;
+        }
+
+        /* Logo styling */
+        .logo {
+            position: fixed;
+            left: calc(50% + (-490px * var(--scale-factor)));
+            top: calc(0% + (-125px * var(--scale-factor)));
+            width: calc(400px * var(--scale-factor));
+            height: auto;
+            z-index: 10;
+        }
+
+        /* Unity Canvas Scaler ensures consistent scaling across all screen sizes */
+
+        /* Background remains consistent */
+    </style>
+    
+    <!-- Firebase Configuration (loaded from .env) -->
+    <script src="./firebase-config.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, connectAuthEmulator } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+        import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-functions.js';
+        import { getDatabase, ref, get, connectDatabaseEmulator } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
+        
+        // Firebase configuration (loaded from firebase-config.js)
+        const firebaseConfig = window.firebaseConfig;
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const functions = getFunctions(app);
+        const database = getDatabase(app);
+        
+        // Connect to emulators when running locally
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+            connectFunctionsEmulator(functions, "127.0.0.1", 5001);
+            connectDatabaseEmulator(database, "127.0.0.1", 9000);
+        }
+        
+        window.firebaseAuth = auth;
+        window.firebaseFunctions = functions;
+        window.firebaseDatabase = database;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+        window.httpsCallable = httpsCallable;
+        window.dbRef = ref;
+        window.dbGet = get;
+    </script>
+</head>
+<body>
+    <div class="background-container"></div>
+    
+    <!-- Logo -->
+    <img src="./img/logo.png" alt="FANTASY STUDIO" class="logo">
+    
+    <div class="login-container">
+        <div class="login-popup">
+            <h1 class="login-title">LOGIN</h1>
+            
+            <div class="input-container">
+                <label class="input-label" for="email">E-MAIL</label>
+                <input type="email" id="email" class="input-field" required>
+            </div>
+            
+            <div class="input-container">
+                <label class="input-label" for="password">PASSWORD</label>
+                <input type="password" id="password" class="input-field password" required>
+            </div>
+            
+            <button type="button" id="loginBtn" class="login-button"></button>
+            
+            <div id="errorMessage" class="error-message"></div>
+            <div id="loading" class="loading">Logging in...</div>
+            
+            <a href="./signup.html" class="nav-link">Don't have an account? Sign Up</a>
+        </div>
+    </div>
+
+    <script>
+        // Login functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const loginBtn = document.getElementById('loginBtn');
+            const errorMessage = document.getElementById('errorMessage');
+            const loading = document.getElementById('loading');
+
+            // Handle login button click
+            loginBtn.addEventListener('click', handleLogin);
+            
+            // Handle Enter key press
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleLogin();
+                }
+            });
+
+            async function handleLogin() {
+                const email = emailInput.value.trim();
+                const password = passwordInput.value.trim();
+
+                // Clear previous error messages
+                errorMessage.textContent = '';
+
+                // Validation
+                if (!email || !password) {
+                    showError('Please enter both email and password');
+                    return;
+                }
+
+                if (!isValidEmail(email)) {
+                    showError('Please enter a valid email address');
+                    return;
+                }
+
+                try {
+                    showLoading(true);
+                    
+                    // Attempt to sign in with Firebase
+                    const userCredential = await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                    const user = userCredential.user;
+                    
+                    console.log('Login successful:', user.uid);
+                    
+                    // Test createUserProfile function
+                    await testFunctions(user);
+                    
+                    // Redirect to main application
+                    window.location.href = '/index.html';
+                    
+                } catch (error) {
+                    console.error('Login error:', error);
+                    
+                    // Handle specific error codes
+                    switch (error.code) {
+                        case 'auth/user-not-found':
+                            showError('No account found with this email');
+                            break;
+                        case 'auth/wrong-password':
+                            showError('Incorrect password');
+                            break;
+                        case 'auth/too-many-requests':
+                            showError('Too many failed attempts. Please try again later');
+                            break;
+                        case 'auth/invalid-email':
+                            showError('Invalid email address');
+                            break;
+                        default:
+                            showError('Login failed. Please try again');
+                    }
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            function showError(message) {
+                errorMessage.textContent = message;
+            }
+
+            function showLoading(show) {
+                loading.style.display = show ? 'block' : 'none';
+                loginBtn.disabled = show;
+            }
+
+            function isValidEmail(email) {
+                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+            }
+
+            // Test Firebase Functions
+            async function testFunctions(user) {
+                console.log('Testing Firebase Functions...');
+                
+                try {
+                    // Test createUserProfile
+                    const createUserProfile = window.httpsCallable(window.firebaseFunctions, 'createUserProfile');
+                    const profileResult = await createUserProfile({
+                        uid: user.uid,
+                        email: user.email
+                    });
+                    console.log('createUserProfile result:', profileResult.data);
+                    
+                    // Test initializeSystem
+                    const initializeSystem = window.httpsCallable(window.firebaseFunctions, 'initializeSystem');
+                    const systemResult = await initializeSystem({});
+                    console.log('initializeSystem result:', systemResult.data);
+                    
+                    // Check user data in database
+                    const userRef = window.dbRef(window.firebaseDatabase, `users/${user.uid}`);
+                    const userSnapshot = await window.dbGet(userRef);
+                    if (userSnapshot.exists()) {
+                        console.log('User data:', userSnapshot.val());
+                    } else {
+                        console.log('No user data found');
+                    }
+                    
+                    // Check oracle data
+                    const oracleRef = window.dbRef(window.firebaseDatabase, 'oracle/current');
+                    const oracleSnapshot = await window.dbGet(oracleRef);
+                    if (oracleSnapshot.exists()) {
+                        console.log('Oracle data:', oracleSnapshot.val());
+                    } else {
+                        console.log('No oracle data found');
+                    }
+                    
+                } catch (error) {
+                    console.error('Function test error:', error);
+                }
+            }
+
+            // Auto-focus email field
+            emailInput.focus();
+        });
+    </script>
+</body>
+</html>
