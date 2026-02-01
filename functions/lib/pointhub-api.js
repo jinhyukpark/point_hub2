@@ -24,10 +24,20 @@ const firebase_config_1 = require("./firebase-config");
 // ============================================
 // Configuration
 // ============================================
-// 실제 운영 시 환경변수 또는 Firebase config에서 가져와야 함
+// Firebase Functions v2 환경변수 설정 방법:
+// 1. .env 파일 사용 (functions/.env 또는 functions/.env.local)
+// 2. 또는 Firebase Secret Manager 사용
+//
+// .env 파일 예시:
+// POINTHUB_API_KEY=A9f3K2mX7Qr8LZ0w5N4BsYH1D6pVJcUeTqRkM9nFGx2bWlS8EaCdy0P7Z6tR
+// POINTHUB_SECRET_KEY=G7kP2wZ9Q4rL1xV6M8fC0bS5T3yNJDpHaUeRjWqXlFvB8mY2oKz1cE9tR4X4
+// POINTHUB_COM_CODE=UNIDECA
+const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
 const POINTHUB_CONFIG = {
-    API_KEY: process.env.POINTHUB_API_KEY || 'test-api-key',
-    SECRET_KEY: process.env.POINTHUB_SECRET_KEY || 'test-secret-key',
+    // 프로덕션 키 (환경변수에서 가져오기, 에뮬레이터에서는 테스트 키 사용)
+    API_KEY: process.env.POINTHUB_API_KEY || (isEmulator ? 'test-api-key' : ''),
+    SECRET_KEY: process.env.POINTHUB_SECRET_KEY || (isEmulator ? 'test-secret-key' : ''),
+    COM_CODE: process.env.POINTHUB_COM_CODE || (isEmulator ? 'TEST' : ''),
     // 회원 ID 접두사 (mbid) - 예: "EN", "KR" 등
     MEMBER_PREFIX: process.env.POINTHUB_MEMBER_PREFIX || 'EN',
     // 타임스탬프 유효 범위 (초) - 너무 오래된 요청 거부
