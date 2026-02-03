@@ -423,7 +423,8 @@ exports.usdpWithdraw = (0, https_1.onRequest)({ cors: true, region: 'asia-northe
         // 트랜잭션으로 잔액 감소
         const walletRef = firebase_config_1.rtdb.ref(`/users/${uid}/wallet/usdt`);
         const transactionResult = await walletRef.transaction((balance) => {
-            const current = balance || 0;
+            // null인 경우 pre-check에서 확인한 잔액 사용 (에뮬레이터 호환)
+            const current = (balance !== null && balance !== undefined) ? balance : currentBalance;
             if (current < request.amount) {
                 return; // Abort transaction
             }
@@ -645,9 +646,16 @@ exports.usdmWithdraw = (0, https_1.onRequest)({ cors: true, region: 'asia-northe
             res.status(404).json(createResponse('fail', ERROR_CODES.MEMBER_NOT_FOUND.code, ERROR_CODES.MEMBER_NOT_FOUND.message));
             return;
         }
+        // 현재 잔액 확인
+        const currentBalanceSnapshot = await firebase_config_1.rtdb.ref(`/users/${uid}/wallet/ivy`).once('value');
+        const currentBalance = currentBalanceSnapshot.val() || 0;
+        if (currentBalance < request.amount) {
+            res.status(400).json(createResponse('fail', ERROR_CODES.INSUFFICIENT_BALANCE.code, `${ERROR_CODES.INSUFFICIENT_BALANCE.message}. Current: ${currentBalance}, Required: ${request.amount}`));
+            return;
+        }
         const walletRef = firebase_config_1.rtdb.ref(`/users/${uid}/wallet/ivy`);
         const transactionResult = await walletRef.transaction((balance) => {
-            const current = balance || 0;
+            const current = (balance !== null && balance !== undefined) ? balance : currentBalance;
             if (current < request.amount) {
                 return;
             }
@@ -865,9 +873,16 @@ exports.gpointWithdraw = (0, https_1.onRequest)({ cors: true, region: 'asia-nort
             res.status(404).json(createResponse('fail', ERROR_CODES.MEMBER_NOT_FOUND.code, ERROR_CODES.MEMBER_NOT_FOUND.message));
             return;
         }
+        // 현재 잔액 확인
+        const currentBalanceSnapshot = await firebase_config_1.rtdb.ref(`/users/${uid}/wallet/gpoint`).once('value');
+        const currentBalance = currentBalanceSnapshot.val() || 0;
+        if (currentBalance < request.amount) {
+            res.status(400).json(createResponse('fail', ERROR_CODES.INSUFFICIENT_BALANCE.code, `${ERROR_CODES.INSUFFICIENT_BALANCE.message}. Current: ${currentBalance}, Required: ${request.amount}`));
+            return;
+        }
         const walletRef = firebase_config_1.rtdb.ref(`/users/${uid}/wallet/gpoint`);
         const transactionResult = await walletRef.transaction((balance) => {
-            const current = balance || 0;
+            const current = (balance !== null && balance !== undefined) ? balance : currentBalance;
             if (current < request.amount) {
                 return;
             }
@@ -1085,9 +1100,16 @@ exports.gporderWithdraw = (0, https_1.onRequest)({ cors: true, region: 'asia-nor
             res.status(404).json(createResponse('fail', ERROR_CODES.MEMBER_NOT_FOUND.code, ERROR_CODES.MEMBER_NOT_FOUND.message));
             return;
         }
+        // 현재 잔액 확인
+        const currentBalanceSnapshot = await firebase_config_1.rtdb.ref(`/users/${uid}/wallet/gporder`).once('value');
+        const currentBalance = currentBalanceSnapshot.val() || 0;
+        if (currentBalance < request.amount) {
+            res.status(400).json(createResponse('fail', ERROR_CODES.INSUFFICIENT_BALANCE.code, `${ERROR_CODES.INSUFFICIENT_BALANCE.message}. Current: ${currentBalance}, Required: ${request.amount}`));
+            return;
+        }
         const walletRef = firebase_config_1.rtdb.ref(`/users/${uid}/wallet/gporder`);
         const transactionResult = await walletRef.transaction((balance) => {
-            const current = balance || 0;
+            const current = (balance !== null && balance !== undefined) ? balance : currentBalance;
             if (current < request.amount) {
                 return;
             }
