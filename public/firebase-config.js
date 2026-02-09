@@ -11,13 +11,12 @@
   'use strict';
   
   window.firebaseConfig = {
-  "apiKey": "AIzaSyBL5OqOOM7Dr68dwiiqPta_0H_WcLnfK4Q",
-  "authDomain": "pointhub-ab054.firebaseapp.com",
-  "databaseURL": "https://pointhub-ab054-default-rtdb.asia-southeast1.firebasedatabase.app",
-  "projectId": "pointhub-ab054",
-  "storageBucket": "pointhub-ab054.firebasestorage.app",
-  "messagingSenderId": "357350284675",
-  "appId": "1:357350284675:web:2004ea07513e63d0dc6ab6",
-  "measurementId": "G-5H7F5Q1RQW"
+  "apiKey": "AIzaSyAzXfuaPDvRf8oPPDhOAIyt4fGX7sroOVA",
+  "authDomain": "point-hub-a9db1.firebaseapp.com",
+  "databaseURL": "https://point-hub-a9db1-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "projectId": "point-hub-a9db1",
+  "storageBucket": "point-hub-a9db1.firebasestorage.app",
+  "messagingSenderId": "846214606346",
+  "appId": "1:846214606346:web:f973ea81da691a82eeb9f3"
 };
 })();

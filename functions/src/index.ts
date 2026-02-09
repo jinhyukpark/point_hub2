@@ -2,7 +2,8 @@ import { onCall } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { CallableRequest } from 'firebase-functions/v2/https';
 import { HttpsError } from 'firebase-functions/v2/https';
-import { rtdb } from './firebase-config';
+import admin, { rtdb } from './firebase-config';
+import { memberCheck } from './pointhub-client';
 
 // 새로운 게임 관리 함수들 import
 export { 
@@ -77,31 +78,6 @@ export {
 // Admin tools
 export { setAllUsersVip } from './admin-tools';
 
-// PointHub External API (파트너 연동용)
-export {
-  // 회원 확인
-  memberCheck,
-  // USDP (현금성 포인트)
-  usdpSelect,
-  usdpTransfer,
-  usdpWithdraw,
-  // USDM (마일리지 포인트)
-  usdmSelect,
-  usdmTransfer,
-  usdmWithdraw,
-  // Gpoint
-  gpointSelect,
-  gpointTransfer,
-  gpointWithdraw,
-  // GPorder
-  gporderSelect,
-  gporderTransfer,
-  gporderWithdraw,
-  // Internal helpers (Unity client용)
-  getMemberInfo,
-  updateProfileImage
-} from './pointhub-api';
-
 // Firebase is initialized in firebase-config.ts
 
 // Types
@@ -133,6 +109,128 @@ interface LedgerEntry {
 interface CryptoPrice {
   [symbol: string]: string;
 }
+
+// ============================================
+// PointHub 로그인 (인증 불필요 - 로그인 전이므로)
+// ============================================
+export const pointHubLogin = onCall(async (request: CallableRequest<{id: string, password: string}>) => {
+  const { id, password } = request.data;
+
+  if (!id || !password) {
+    throw new HttpsError('invalid-argument', 'ID와 비밀번호를 입력해주세요.');
+  }
+
+  console.log('=== pointHubLogin 시작 ===');
+  console.log('ID:', id);
+
+  try {
+    // 1. PointHub API로 계정 확인
+    const phResult = await memberCheck(id, password);
+    console.log('PointHub 응답:', JSON.stringify(phResult));
+
+    // PointHub 인증 실패
+    if (!phResult.success) {
+      const errorMsg = `[${phResult.code}] ${phResult.message || 'PointHub 인증에 실패했습니다.'}`;
+      console.log('PointHub 인증 실패:', errorMsg);
+      throw new HttpsError('unauthenticated', errorMsg);
+    }
+
+    // 2. Firebase Auth 계정 확인/생성
+    const email = `${id}@pointhub.local`; // PointHub ID를 이메일 형식으로 변환
+    let firebaseUser;
+
+    try {
+      // 기존 사용자 확인
+      firebaseUser = await admin.auth().getUserByEmail(email);
+      console.log('기존 Firebase 사용자 발견:', firebaseUser.uid);
+    } catch (error: unknown) {
+      // 사용자가 없으면 생성
+      if ((error as {code?: string}).code === 'auth/user-not-found') {
+        console.log('새 Firebase 사용자 생성 중...');
+        firebaseUser = await admin.auth().createUser({
+          email: email,
+          password: password,
+          displayName: phResult.data?.nickname || id
+        });
+        console.log('새 Firebase 사용자 생성됨:', firebaseUser.uid);
+
+        // 사용자 프로필 초기화
+        const userProfile: UserProfile = {
+          createdAt: Date.now()
+        };
+        const userWallet: UserWallet = {
+          usdt: 100,
+          ivy: 0,
+          pending: 0
+        };
+
+        await rtdb.ref(`/users/${firebaseUser.uid}`).set({
+          auth: {
+            uid: firebaseUser.uid,
+            email: email,
+            emailVerified: false
+          },
+          profile: userProfile,
+          wallet: userWallet,
+          pointHub: {
+            id: id,
+            mbid: phResult.data?.mbid,
+            mbid2: phResult.data?.mbid2,
+            nickname: phResult.data?.nickname,
+            level: phResult.data?.level
+          }
+        });
+
+        // 회원가입 보너스 Ledger 기록
+        const ledgerEntry: LedgerEntry = {
+          type: 'credit',
+          amountUsd: 100,
+          meta: {
+            operation: 'signup_bonus',
+            description: 'Welcome bonus for new user (PointHub)',
+            timestamp: Date.now()
+          },
+          createdAt: Date.now()
+        };
+        await rtdb.ref(`/ledger/${firebaseUser.uid}`).push(ledgerEntry);
+      } else {
+        throw error;
+      }
+    }
+
+    // 3. Custom Token 생성
+    const customToken = await admin.auth().createCustomToken(firebaseUser.uid, {
+      pointHubId: id,
+      mbid: phResult.data?.mbid,
+      mbid2: phResult.data?.mbid2
+    });
+
+    console.log('=== pointHubLogin 완료 ===');
+
+    return {
+      success: true,
+      customToken: customToken,
+      user: {
+        uid: firebaseUser.uid,
+        email: email,
+        displayName: phResult.data?.nickname || id,
+        pointHub: {
+          id: id,
+          mbid: phResult.data?.mbid,
+          mbid2: phResult.data?.mbid2,
+          nickname: phResult.data?.nickname,
+          level: phResult.data?.level
+        }
+      }
+    };
+  } catch (error) {
+    console.error('pointHubLogin 에러:', error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError('internal', '로그인 처리 중 오류가 발생했습니다.');
+  }
+});
 
 // User initialization on account creation
 export const createUserProfile = onCall(async (request: CallableRequest<{uid: string, email?: string}>) => {

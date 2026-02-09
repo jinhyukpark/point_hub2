@@ -226,7 +226,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, connectAuthEmulator } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+        import { getAuth, signInWithEmailAndPassword, signInWithCustomToken, createUserWithEmailAndPassword, connectAuthEmulator } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
         import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-functions.js';
         import { getDatabase, ref, get, connectDatabaseEmulator } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
         
@@ -250,6 +250,7 @@
         window.firebaseFunctions = functions;
         window.firebaseDatabase = database;
         window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.signInWithCustomToken = signInWithCustomToken;
         window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
         window.httpsCallable = httpsCallable;
         window.dbRef = ref;
@@ -267,8 +268,8 @@
             <h1 class="login-title">LOGIN</h1>
             
             <div class="input-container">
-                <label class="input-label" for="email">E-MAIL</label>
-                <input type="email" id="email" class="input-field" required>
+                <label class="input-label" for="userId">ID</label>
+                <input type="text" id="userId" class="input-field" required>
             </div>
             
             <div class="input-container">
@@ -288,7 +289,7 @@
     <script>
         // Login functionality
         document.addEventListener('DOMContentLoaded', function() {
-            const emailInput = document.getElementById('email');
+            const userIdInput = document.getElementById('userId');
             const passwordInput = document.getElementById('password');
             const loginBtn = document.getElementById('loginBtn');
             const errorMessage = document.getElementById('errorMessage');
@@ -296,7 +297,7 @@
 
             // Handle login button click
             loginBtn.addEventListener('click', handleLogin);
-            
+
             // Handle Enter key press
             document.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
@@ -305,57 +306,56 @@
             });
 
             async function handleLogin() {
-                const email = emailInput.value.trim();
+                const userId = userIdInput.value.trim();
                 const password = passwordInput.value.trim();
 
                 // Clear previous error messages
                 errorMessage.textContent = '';
 
                 // Validation
-                if (!email || !password) {
-                    showError('Please enter both email and password');
-                    return;
-                }
-
-                if (!isValidEmail(email)) {
-                    showError('Please enter a valid email address');
+                if (!userId || !password) {
+                    showError('ID와 비밀번호를 입력해주세요');
                     return;
                 }
 
                 try {
                     showLoading(true);
-                    
-                    // Attempt to sign in with Firebase
-                    const userCredential = await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+
+                    // 1. PointHub 로그인 Cloud Function 호출
+                    console.log('PointHub 로그인 시도:', userId);
+                    const pointHubLogin = window.httpsCallable(window.firebaseFunctions, 'pointHubLogin');
+                    const result = await pointHubLogin({ id: userId, password: password });
+
+                    console.log('PointHub 로그인 결과:', result.data);
+
+                    if (!result.data.success) {
+                        throw new Error(result.data.message || '로그인에 실패했습니다');
+                    }
+
+                    // 2. Custom Token으로 Firebase 로그인
+                    const userCredential = await window.signInWithCustomToken(window.firebaseAuth, result.data.customToken);
                     const user = userCredential.user;
-                    
-                    console.log('Login successful:', user.uid);
-                    
-                    // Test createUserProfile function
-                    await testFunctions(user);
-                    
-                    // Redirect to main application
+
+                    console.log('Firebase 로그인 성공:', user.uid);
+
+                    // 3. 시스템 초기화
+                    await initializeSystem();
+
+                    // 4. 메인 앱으로 이동
                     window.location.href = '/index.html';
-                    
+
                 } catch (error) {
                     console.error('Login error:', error);
-                    
-                    // Handle specific error codes
-                    switch (error.code) {
-                        case 'auth/user-not-found':
-                            showError('No account found with this email');
-                            break;
-                        case 'auth/wrong-password':
-                            showError('Incorrect password');
-                            break;
-                        case 'auth/too-many-requests':
-                            showError('Too many failed attempts. Please try again later');
-                            break;
-                        case 'auth/invalid-email':
-                            showError('Invalid email address');
-                            break;
-                        default:
-                            showError('Login failed. Please try again');
+
+                    // 에러 메시지 처리
+                    if (error.code === 'functions/unauthenticated') {
+                        showError('ID 또는 비밀번호가 올바르지 않습니다');
+                    } else if (error.code === 'functions/invalid-argument') {
+                        showError('ID와 비밀번호를 입력해주세요');
+                    } else if (error.message) {
+                        showError(error.message);
+                    } else {
+                        showError('로그인에 실패했습니다. 다시 시도해주세요');
                     }
                 } finally {
                     showLoading(false);
@@ -371,53 +371,19 @@
                 loginBtn.disabled = show;
             }
 
-            function isValidEmail(email) {
-                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-            }
-
-            // Test Firebase Functions
-            async function testFunctions(user) {
-                console.log('Testing Firebase Functions...');
-                
+            // 시스템 초기화
+            async function initializeSystem() {
                 try {
-                    // Test createUserProfile
-                    const createUserProfile = window.httpsCallable(window.firebaseFunctions, 'createUserProfile');
-                    const profileResult = await createUserProfile({
-                        uid: user.uid,
-                        email: user.email
-                    });
-                    console.log('createUserProfile result:', profileResult.data);
-                    
-                    // Test initializeSystem
-                    const initializeSystem = window.httpsCallable(window.firebaseFunctions, 'initializeSystem');
-                    const systemResult = await initializeSystem({});
-                    console.log('initializeSystem result:', systemResult.data);
-                    
-                    // Check user data in database
-                    const userRef = window.dbRef(window.firebaseDatabase, `users/${user.uid}`);
-                    const userSnapshot = await window.dbGet(userRef);
-                    if (userSnapshot.exists()) {
-                        console.log('User data:', userSnapshot.val());
-                    } else {
-                        console.log('No user data found');
-                    }
-                    
-                    // Check oracle data
-                    const oracleRef = window.dbRef(window.firebaseDatabase, 'oracle/current');
-                    const oracleSnapshot = await window.dbGet(oracleRef);
-                    if (oracleSnapshot.exists()) {
-                        console.log('Oracle data:', oracleSnapshot.val());
-                    } else {
-                        console.log('No oracle data found');
-                    }
-                    
+                    const initSystem = window.httpsCallable(window.firebaseFunctions, 'initializeSystem');
+                    await initSystem({});
+                    console.log('시스템 초기화 완료');
                 } catch (error) {
-                    console.error('Function test error:', error);
+                    console.warn('시스템 초기화 중 오류 (무시):', error);
                 }
             }
 
-            // Auto-focus email field
-            emailInput.focus();
+            // Auto-focus ID field
+            userIdInput.focus();
         });
     </script>
 </body>

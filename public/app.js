@@ -3,6 +3,14 @@
  * Unity-Web Integration with Authentication and Data Sync
  */
 
+console.log('=== app.js 로딩됨 ===');
+console.log('Firebase 상태:', {
+    firebaseReady: window.firebaseReady,
+    firebaseAuth: !!window.firebaseAuth,
+    firebaseFunctions: !!window.firebaseFunctions,
+    httpsCallable: !!window.httpsCallable
+});
+
 const REALTIME_HELPER_KEYS = [
     'firebaseRef',
     'firebaseOnValue',
@@ -219,11 +227,17 @@ class PointHubApp {
 
         // Event listeners (null 체크 포함)
         if (this.elements.loginBtn) {
-            this.elements.loginBtn.addEventListener('click', () => {
-                console.log('🔘 Login button clicked');
-                this.handleLogin();
+            this.elements.loginBtn.addEventListener('click', async () => {
+                console.log('🔘🔘🔘 [v3] Login button clicked');
+                console.log('handleLogin 타입:', typeof this.handleLogin);
+                try {
+                    await this.handleLogin();
+                } catch (error) {
+                    console.error('❌ handleLogin 에러:', error);
+                    console.error('스택:', error.stack);
+                }
             });
-            console.log('✅ Login button event listener attached');
+            console.log('✅ [v3] Login button event listener attached');
         } else {
             console.error('❌ Login button not found!');
         }
@@ -713,23 +727,58 @@ class PointHubApp {
     }
 
     async handleLogin() {
-        const email = this.elements.loginEmail.value.trim();
+        console.log('=== handleLogin 시작 ===');
+        const userId = this.elements.loginEmail.value.trim(); // ID (이메일 아님)
         const password = this.elements.loginPassword.value.trim();
+
+        console.log('입력값:', { userId, password: password ? '***' : 'empty' });
 
         this.clearMessages('login');
 
-        if (!this.validateLoginForm(email, password)) return;
+        if (!userId || !password) {
+            this.showError('login', 'ID와 비밀번호를 입력해주세요');
+            return;
+        }
 
         try {
             this.showLoading('login', true);
-            
-            await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
-            
+
+            // Firebase Functions 확인
+            console.log('Firebase Functions 상태:', {
+                firebaseFunctions: !!window.firebaseFunctions,
+                httpsCallable: !!window.httpsCallable
+            });
+
+            if (!window.httpsCallable || !window.firebaseFunctions) {
+                throw new Error('Firebase Functions가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
+            }
+
+            // 1. PointHub 로그인 Cloud Function 호출
+            console.log('🔐 PointHub 로그인 시도:', userId);
+            const pointHubLogin = window.httpsCallable(window.firebaseFunctions, 'pointHubLogin');
+            console.log('pointHubLogin 함수:', pointHubLogin);
+            const result = await pointHubLogin({ id: userId, password: password });
+
+            console.log('📋 PointHub 로그인 결과:', result.data);
+
+            if (!result.data.success) {
+                throw new Error(result.data.message || '로그인에 실패했습니다');
+            }
+
+            // 2. Custom Token으로 Firebase 로그인
+            await window.signInWithCustomToken(window.firebaseAuth, result.data.customToken);
+
             console.log('✅ Login successful');
-            
+
         } catch (error) {
             console.error('❌ Login failed:', error);
-            this.showError('login', this.getErrorMessage(error.code));
+            if (error.code === 'functions/unauthenticated') {
+                this.showError('login', 'ID 또는 비밀번호가 올바르지 않습니다');
+            } else if (error.message) {
+                this.showError('login', error.message);
+            } else {
+                this.showError('login', this.getErrorMessage(error.code));
+            }
         } finally {
             this.showLoading('login', false);
         }
@@ -1046,9 +1095,15 @@ function initializeAppWhenFirebaseReady() {
 }
 
 function bootstrapPointHubApp() {
+    console.log('=== bootstrapPointHubApp 실행 ===');
+    console.log('document.readyState:', document.readyState);
+    console.log('window.firebaseReady:', window.firebaseReady);
+
     if (document.readyState === 'loading') {
+        console.log('DOM 로딩 대기 중...');
         document.addEventListener('DOMContentLoaded', initializeAppWhenFirebaseReady);
     } else {
+        console.log('DOM 이미 로드됨, 바로 초기화 시작');
         initializeAppWhenFirebaseReady();
     }
 }

@@ -34,11 +34,12 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cubeGameSettlementWorker = exports.testResetCubeGame = exports.testCubeGameWithFixedMove = exports.testCubeGameWithOracle = exports.testFillCubeGame = exports.testCubeGameSettlement = exports.processCubeGameSettlements = exports.finalizeCubeGameHistory = exports.getCubeGameHistory = exports.initializeCubeGame = exports.getCurrentCubeGame = exports.getCubeGamePositions = exports.getCubeGameStatus = exports.joinCubeGame = exports.testMatchingGameWithWinningNumbers = exports.testMatchingGameSettlement = exports.createRandomGame = exports.createOrderGame = exports.getCompletedMatchingGames = exports.getMatchingGameHistory = exports.getMatchingGameStatus = exports.joinMatchingGame = exports.getGoldenBellRoundRewards = exports.updateGoldenBellParticipantReward = exports.updateGoldenBellRoundChoices = exports.fetchGoldenBellUpcomingGames = exports.fetchGoldenBellParticipants = exports.checkRoundResult = exports.saveGoldenBellResult = exports.getGoldenBellHistory = exports.getWaitingRoomStatus = exports.startNextRound = exports.createDailyGoldenBellGamesCallable = exports.createDailyGoldenBellGames = exports.selectTeam = exports.submitGoldenBellDecision = exports.getGoldenBellStatus = exports.submitGoldenBellChoice = exports.joinGoldenBell = exports.getGameHistoryDetail = exports.getPendingGameResults = exports.getUserGameHistoryNew = exports.updateGameHistoryResult = exports.createGameHistory = exports.registerGoldenBellParticipant = exports.processGoldenBellReward = exports.processGoldenBellBet = exports.getUserGameHistory = exports.getCurrentGameStatus = exports.playGame = void 0;
-exports.testResetAllData = exports.enhancedInitUserProfile = exports.initializeSystem = exports.getOraclePriceData = exports.getServerTime = exports.testInitializeAll = exports.testCreateMatchingGame = exports.testUpdateOracle = exports.oracleSnapshot = exports.cubeGameSettlementScheduler = exports.matchingGameSettlementScheduler = exports.matchingRandomScheduler = exports.matchingOrderScheduler = exports.goldenBellRoundScheduler = exports.goldenBellRecoveryScheduler = exports.goldenBellDailyScheduler = exports.debit = exports.credit = exports.createUserProfile = exports.updateProfileImage = exports.getMemberInfo = exports.gporderWithdraw = exports.gporderTransfer = exports.gporderSelect = exports.gpointWithdraw = exports.gpointTransfer = exports.gpointSelect = exports.usdmWithdraw = exports.usdmTransfer = exports.usdmSelect = exports.usdpWithdraw = exports.usdpTransfer = exports.usdpSelect = exports.memberCheck = exports.setAllUsersVip = void 0;
+exports.testResetAllData = exports.enhancedInitUserProfile = exports.initializeSystem = exports.getOraclePriceData = exports.getServerTime = exports.testInitializeAll = exports.testCreateMatchingGame = exports.testUpdateOracle = exports.oracleSnapshot = exports.cubeGameSettlementScheduler = exports.matchingGameSettlementScheduler = exports.matchingRandomScheduler = exports.matchingOrderScheduler = exports.goldenBellRoundScheduler = exports.goldenBellRecoveryScheduler = exports.goldenBellDailyScheduler = exports.debit = exports.credit = exports.createUserProfile = exports.pointHubLogin = exports.setAllUsersVip = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const https_2 = require("firebase-functions/v2/https");
-const firebase_config_1 = require("./firebase-config");
+const firebase_config_1 = __importStar(require("./firebase-config"));
+const pointhub_client_1 = require("./pointhub-client");
 // 새로운 게임 관리 함수들 import
 var game_manager_1 = require("./game-manager");
 Object.defineProperty(exports, "playGame", { enumerable: true, get: function () { return game_manager_1.playGame; } });
@@ -102,29 +103,117 @@ Object.defineProperty(exports, "cubeGameSettlementWorker", { enumerable: true, g
 // Admin tools
 var admin_tools_1 = require("./admin-tools");
 Object.defineProperty(exports, "setAllUsersVip", { enumerable: true, get: function () { return admin_tools_1.setAllUsersVip; } });
-// PointHub External API (파트너 연동용)
-var pointhub_api_1 = require("./pointhub-api");
-// 회원 확인
-Object.defineProperty(exports, "memberCheck", { enumerable: true, get: function () { return pointhub_api_1.memberCheck; } });
-// USDP (현금성 포인트)
-Object.defineProperty(exports, "usdpSelect", { enumerable: true, get: function () { return pointhub_api_1.usdpSelect; } });
-Object.defineProperty(exports, "usdpTransfer", { enumerable: true, get: function () { return pointhub_api_1.usdpTransfer; } });
-Object.defineProperty(exports, "usdpWithdraw", { enumerable: true, get: function () { return pointhub_api_1.usdpWithdraw; } });
-// USDM (마일리지 포인트)
-Object.defineProperty(exports, "usdmSelect", { enumerable: true, get: function () { return pointhub_api_1.usdmSelect; } });
-Object.defineProperty(exports, "usdmTransfer", { enumerable: true, get: function () { return pointhub_api_1.usdmTransfer; } });
-Object.defineProperty(exports, "usdmWithdraw", { enumerable: true, get: function () { return pointhub_api_1.usdmWithdraw; } });
-// Gpoint
-Object.defineProperty(exports, "gpointSelect", { enumerable: true, get: function () { return pointhub_api_1.gpointSelect; } });
-Object.defineProperty(exports, "gpointTransfer", { enumerable: true, get: function () { return pointhub_api_1.gpointTransfer; } });
-Object.defineProperty(exports, "gpointWithdraw", { enumerable: true, get: function () { return pointhub_api_1.gpointWithdraw; } });
-// GPorder
-Object.defineProperty(exports, "gporderSelect", { enumerable: true, get: function () { return pointhub_api_1.gporderSelect; } });
-Object.defineProperty(exports, "gporderTransfer", { enumerable: true, get: function () { return pointhub_api_1.gporderTransfer; } });
-Object.defineProperty(exports, "gporderWithdraw", { enumerable: true, get: function () { return pointhub_api_1.gporderWithdraw; } });
-// Internal helpers (Unity client용)
-Object.defineProperty(exports, "getMemberInfo", { enumerable: true, get: function () { return pointhub_api_1.getMemberInfo; } });
-Object.defineProperty(exports, "updateProfileImage", { enumerable: true, get: function () { return pointhub_api_1.updateProfileImage; } });
+// ============================================
+// PointHub 로그인 (인증 불필요 - 로그인 전이므로)
+// ============================================
+exports.pointHubLogin = (0, https_1.onCall)(async (request) => {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+    const { id, password } = request.data;
+    if (!id || !password) {
+        throw new https_2.HttpsError('invalid-argument', 'ID와 비밀번호를 입력해주세요.');
+    }
+    console.log('=== pointHubLogin 시작 ===');
+    console.log('ID:', id);
+    try {
+        // 1. PointHub API로 계정 확인
+        const phResult = await (0, pointhub_client_1.memberCheck)(id, password);
+        console.log('PointHub 응답:', JSON.stringify(phResult));
+        // PointHub 인증 실패
+        if (phResult.result !== 'success') {
+            throw new https_2.HttpsError('unauthenticated', phResult.message || 'PointHub 인증에 실패했습니다.');
+        }
+        // 2. Firebase Auth 계정 확인/생성
+        const email = `${id}@pointhub.local`; // PointHub ID를 이메일 형식으로 변환
+        let firebaseUser;
+        try {
+            // 기존 사용자 확인
+            firebaseUser = await firebase_config_1.default.auth().getUserByEmail(email);
+            console.log('기존 Firebase 사용자 발견:', firebaseUser.uid);
+        }
+        catch (error) {
+            // 사용자가 없으면 생성
+            if (error.code === 'auth/user-not-found') {
+                console.log('새 Firebase 사용자 생성 중...');
+                firebaseUser = await firebase_config_1.default.auth().createUser({
+                    email: email,
+                    password: password,
+                    displayName: ((_a = phResult.data) === null || _a === void 0 ? void 0 : _a.nickname) || id
+                });
+                console.log('새 Firebase 사용자 생성됨:', firebaseUser.uid);
+                // 사용자 프로필 초기화
+                const userProfile = {
+                    createdAt: Date.now()
+                };
+                const userWallet = {
+                    usdt: 100,
+                    ivy: 0,
+                    pending: 0
+                };
+                await firebase_config_1.rtdb.ref(`/users/${firebaseUser.uid}`).set({
+                    auth: {
+                        uid: firebaseUser.uid,
+                        email: email,
+                        emailVerified: false
+                    },
+                    profile: userProfile,
+                    wallet: userWallet,
+                    pointHub: {
+                        id: id,
+                        mbid: (_b = phResult.data) === null || _b === void 0 ? void 0 : _b.mbid,
+                        mbid2: (_c = phResult.data) === null || _c === void 0 ? void 0 : _c.mbid2,
+                        nickname: (_d = phResult.data) === null || _d === void 0 ? void 0 : _d.nickname,
+                        level: (_e = phResult.data) === null || _e === void 0 ? void 0 : _e.level
+                    }
+                });
+                // 회원가입 보너스 Ledger 기록
+                const ledgerEntry = {
+                    type: 'credit',
+                    amountUsd: 100,
+                    meta: {
+                        operation: 'signup_bonus',
+                        description: 'Welcome bonus for new user (PointHub)',
+                        timestamp: Date.now()
+                    },
+                    createdAt: Date.now()
+                };
+                await firebase_config_1.rtdb.ref(`/ledger/${firebaseUser.uid}`).push(ledgerEntry);
+            }
+            else {
+                throw error;
+            }
+        }
+        // 3. Custom Token 생성
+        const customToken = await firebase_config_1.default.auth().createCustomToken(firebaseUser.uid, {
+            pointHubId: id,
+            mbid: (_f = phResult.data) === null || _f === void 0 ? void 0 : _f.mbid,
+            mbid2: (_g = phResult.data) === null || _g === void 0 ? void 0 : _g.mbid2
+        });
+        console.log('=== pointHubLogin 완료 ===');
+        return {
+            success: true,
+            customToken: customToken,
+            user: {
+                uid: firebaseUser.uid,
+                email: email,
+                displayName: ((_h = phResult.data) === null || _h === void 0 ? void 0 : _h.nickname) || id,
+                pointHub: {
+                    id: id,
+                    mbid: (_j = phResult.data) === null || _j === void 0 ? void 0 : _j.mbid,
+                    mbid2: (_k = phResult.data) === null || _k === void 0 ? void 0 : _k.mbid2,
+                    nickname: (_l = phResult.data) === null || _l === void 0 ? void 0 : _l.nickname,
+                    level: (_m = phResult.data) === null || _m === void 0 ? void 0 : _m.level
+                }
+            }
+        };
+    }
+    catch (error) {
+        console.error('pointHubLogin 에러:', error);
+        if (error instanceof https_2.HttpsError) {
+            throw error;
+        }
+        throw new https_2.HttpsError('internal', '로그인 처리 중 오류가 발생했습니다.');
+    }
+});
 // User initialization on account creation
 exports.createUserProfile = (0, https_1.onCall)(async (request) => {
     // Allow testing without authentication
