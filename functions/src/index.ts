@@ -113,7 +113,9 @@ interface CryptoPrice {
 // ============================================
 // PointHub 로그인 (인증 불필요 - 로그인 전이므로)
 // ============================================
-export const pointHubLogin = onCall(async (request: CallableRequest<{id: string, password: string}>) => {
+export const pointHubLogin = onCall({
+  serviceAccount: "point-hub-a9db1@appspot.gserviceaccount.com"
+}, async (request: CallableRequest<{id: string, password: string}>) => {
   const { id, password } = request.data;
 
   if (!id || !password) {
