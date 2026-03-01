@@ -5,6 +5,7 @@ import { getFunctions } from 'firebase-admin/functions';
 import type { TaskQueue } from 'firebase-admin/functions';
 import { rtdb } from './firebase-config';
 import { formatCubeHistory } from './history-formatter';
+import { addToGporderQueue } from './index';
 
 const CUBE_SETTLEMENT_DELAY_MS = 4.5 * 60 * 1000;
 const MAX_CUBE_POSITIONS = 2047;
@@ -582,6 +583,16 @@ export const joinCubeGame = onCall(async (request: CallableRequest) => {
       gameId: currentGame.gameId,
       position: positionKey
     });
+
+    // GPorder 대기열에 게임 매출 추가 (입장료의 일부)
+    // Ordertype '03': 게임매출1
+    await addToGporderQueue(
+      uid,
+      betAmount * 0.2, // 입장료의 20%를 게임 매출로 기록
+      '03',
+      'cube',
+      currentGame.gameId
+    );
 
     // 게임이 가득 찼는지 확인 (2047명)
     const updatedGame = await getCurrentCubeGameInternal();

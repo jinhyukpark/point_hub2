@@ -8,6 +8,7 @@ exports.processMatchingGameSettlements = processMatchingGameSettlements;
 const https_1 = require("firebase-functions/v2/https");
 const firebase_config_1 = require("./firebase-config");
 const history_formatter_1 = require("./history-formatter");
+const index_1 = require("./index");
 const MATCHING_SETTLEMENT_DELAY_MS = 5 * 60 * 1000;
 const MATCHING_ORACLE_PAIRS = [
     'BTCUSDT',
@@ -248,6 +249,10 @@ exports.joinMatchingGame = (0, https_1.onCall)(async (request) => {
                     selectionType,
                     betId
                 });
+                // GPorder 대기열에 게임 매출 추가 (플랫폼 수수료 = betAmount)
+                // Ordertype '03': 게임매출1 (게임 수익의 일부)
+                await (0, index_1.addToGporderQueue)(uid, betAmount, // 플랫폼 수수료 (베팅금의 50%)
+                '03', 'matching', game.gameId);
             }
         }
         else {

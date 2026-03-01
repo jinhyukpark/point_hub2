@@ -8,6 +8,7 @@ exports.createGoldenBellGame = createGoldenBellGame;
 const https_1 = require("firebase-functions/v2/https");
 const firebase_config_1 = require("./firebase-config");
 const history_formatter_1 = require("./history-formatter");
+const index_1 = require("./index");
 const GOLDEN_BELL_SLOT_MINUTES = [5, 15, 25, 35, 45, 55];
 const GOLDEN_BELL_JOIN_WINDOW_MS = 15000; // 시작 전후 15초
 const GOLDEN_BELL_BETTING_DURATION_MS = 15000;
@@ -1457,6 +1458,13 @@ async function calculateGoldenBellRound(gameId) {
             gameStatus: winners.length === 0 ? 'finished' : 'continue'
         };
         await firebase_config_1.rtdb.ref(`/games/goldenbell/${gameId}/results/${game.round}`).set(roundResult);
+        // GPorder 대기열에 게임 매출 추가
+        // 패배자들의 배팅금은 게임 매출로 기록 (Ordertype: '03')
+        for (const uid of eliminatedParticipants) {
+            await (0, index_1.addToGporderQueue)(uid, GOLDEN_BELL_BET_COST, // 패배자의 베팅금
+            '03', // 게임매출1
+            'goldenbell', gameId);
+        }
         // 게임 종료 조건 확인
         // 승자가 없거나 10라운드 완료 시에만 게임 종료
         // 혼자 참가한 경우 10라운드까지 계속 진행
@@ -1475,6 +1483,18 @@ async function calculateGoldenBellRound(gameId) {
             }
             if (Object.keys(participantUpdates).length > 0) {
                 await firebase_config_1.rtdb.ref().update(participantUpdates);
+            }
+            // GPorder: 승자 없이 게임 종료 시 게임매출2 (Ordertype: '04') 기록
+            if (winners.length === 0) {
+                // 모든 참가자가 탈락한 경우, 남은 pot을 게임매출2로 기록
+                const totalParticipants = Object.keys(game.participants || {}).length;
+                const remainingPot = totalParticipants * GOLDEN_BELL_BET_COST;
+                // 첫 번째 탈락자의 uid로 GPorder 기록 (대표)
+                if (eliminatedParticipants.length > 0) {
+                    await (0, index_1.addToGporderQueue)(eliminatedParticipants[0], remainingPot, '04', // 게임매출2 (골든벨 미당첨)
+                    'goldenbell_no_winner', gameId);
+                    console.log(`[GPorder] Golden Bell no winner - recorded ${remainingPot} as Ordertype 04`);
+                }
             }
             // ✅ 게임 종료 - 최종 우승자들에게 누적 상금 지급
             if (winners.length === 1) {

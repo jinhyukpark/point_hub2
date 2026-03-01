@@ -2,6 +2,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { CallableRequest } from 'firebase-functions/v2/https';
 import { rtdb } from './firebase-config';
 import { formatRank } from './history-formatter';
+import { addToGporderQueue } from './index';
 
 const MATCHING_SETTLEMENT_DELAY_MS = 5 * 60 * 1000;
 const MATCHING_ORACLE_PAIRS = [
@@ -355,6 +356,16 @@ export const joinMatchingGame = onCall(async (request: CallableRequest) => {
           selectionType,
           betId
         });
+
+        // GPorder 대기열에 게임 매출 추가 (플랫폼 수수료 = betAmount)
+        // Ordertype '03': 게임매출1 (게임 수익의 일부)
+        await addToGporderQueue(
+          uid,
+          betAmount, // 플랫폼 수수료 (베팅금의 50%)
+          '03',
+          'matching',
+          game.gameId
+        );
       }
     } else {
       console.log(`[joinMatchingGame] Random game - skipping additional debit and ledger recording`);

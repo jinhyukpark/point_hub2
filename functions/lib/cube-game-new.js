@@ -8,6 +8,7 @@ const tasks_1 = require("firebase-functions/v2/tasks");
 const functions_1 = require("firebase-admin/functions");
 const firebase_config_1 = require("./firebase-config");
 const history_formatter_1 = require("./history-formatter");
+const index_1 = require("./index");
 const CUBE_SETTLEMENT_DELAY_MS = 4.5 * 60 * 1000;
 const MAX_CUBE_POSITIONS = 2047;
 const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || process.env.PROJECT_ID || 'pointhub-ab054';
@@ -385,6 +386,10 @@ exports.joinCubeGame = (0, https_1.onCall)(async (request) => {
             gameId: currentGame.gameId,
             position: positionKey
         });
+        // GPorder 대기열에 게임 매출 추가 (입장료의 일부)
+        // Ordertype '03': 게임매출1
+        await (0, index_1.addToGporderQueue)(uid, betAmount * 0.2, // 입장료의 20%를 게임 매출로 기록
+        '03', 'cube', currentGame.gameId);
         // 게임이 가득 찼는지 확인 (2047명)
         const updatedGame = await getCurrentCubeGameInternal();
         if (updatedGame && countCubeParticipantSeats(updatedGame.participants) >= MAX_CUBE_POSITIONS) {

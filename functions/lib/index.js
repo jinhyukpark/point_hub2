@@ -34,7 +34,8 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cubeGameSettlementWorker = exports.testResetCubeGame = exports.testCubeGameWithFixedMove = exports.testCubeGameWithOracle = exports.testFillCubeGame = exports.testCubeGameSettlement = exports.processCubeGameSettlements = exports.finalizeCubeGameHistory = exports.getCubeGameHistory = exports.initializeCubeGame = exports.getCurrentCubeGame = exports.getCubeGamePositions = exports.getCubeGameStatus = exports.joinCubeGame = exports.testMatchingGameWithWinningNumbers = exports.testMatchingGameSettlement = exports.createRandomGame = exports.createOrderGame = exports.getCompletedMatchingGames = exports.getMatchingGameHistory = exports.getMatchingGameStatus = exports.joinMatchingGame = exports.getGoldenBellRoundRewards = exports.updateGoldenBellParticipantReward = exports.updateGoldenBellRoundChoices = exports.fetchGoldenBellUpcomingGames = exports.fetchGoldenBellParticipants = exports.checkRoundResult = exports.saveGoldenBellResult = exports.getGoldenBellHistory = exports.getWaitingRoomStatus = exports.startNextRound = exports.createDailyGoldenBellGamesCallable = exports.createDailyGoldenBellGames = exports.selectTeam = exports.submitGoldenBellDecision = exports.getGoldenBellStatus = exports.submitGoldenBellChoice = exports.joinGoldenBell = exports.getGameHistoryDetail = exports.getPendingGameResults = exports.getUserGameHistoryNew = exports.updateGameHistoryResult = exports.createGameHistory = exports.registerGoldenBellParticipant = exports.processGoldenBellReward = exports.processGoldenBellBet = exports.getUserGameHistory = exports.getCurrentGameStatus = exports.playGame = void 0;
-exports.testResetAllData = exports.enhancedInitUserProfile = exports.initializeSystem = exports.getOraclePriceData = exports.getServerTime = exports.testInitializeAll = exports.testCreateMatchingGame = exports.testUpdateOracle = exports.oracleSnapshot = exports.cubeGameSettlementScheduler = exports.matchingGameSettlementScheduler = exports.matchingRandomScheduler = exports.matchingOrderScheduler = exports.goldenBellRoundScheduler = exports.goldenBellRecoveryScheduler = exports.goldenBellDailyScheduler = exports.debit = exports.credit = exports.createUserProfile = exports.pointHubLogin = exports.setAllUsersVip = void 0;
+exports.testResetAllData = exports.enhancedInitUserProfile = exports.initializeSystem = exports.getOraclePriceData = exports.getServerTime = exports.testInitializeAll = exports.testCreateMatchingGame = exports.testUpdateOracle = exports.oracleSnapshot = exports.testAddToGporderQueue = exports.testProcessGporderQueue = exports.gporderBatchScheduler = exports.testGpointSync = exports.gpointSyncScheduler = exports.cubeGameSettlementScheduler = exports.matchingGameSettlementScheduler = exports.matchingRandomScheduler = exports.matchingOrderScheduler = exports.goldenBellRoundScheduler = exports.goldenBellRecoveryScheduler = exports.goldenBellDailyScheduler = exports.debit = exports.credit = exports.createUserProfile = exports.pointHubLogin = exports.setAllUsersVip = void 0;
+exports.addToGporderQueue = addToGporderQueue;
 const https_1 = require("firebase-functions/v2/https");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const https_2 = require("firebase-functions/v2/https");
@@ -107,7 +108,7 @@ Object.defineProperty(exports, "setAllUsersVip", { enumerable: true, get: functi
 // PointHub 로그인 (인증 불필요 - 로그인 전이므로)
 // ============================================
 exports.pointHubLogin = (0, https_1.onCall)(async (request) => {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     const { id, password } = request.data;
     if (!id || !password) {
         throw new https_2.HttpsError('invalid-argument', 'ID와 비밀번호를 입력해주세요.');
@@ -119,8 +120,10 @@ exports.pointHubLogin = (0, https_1.onCall)(async (request) => {
         const phResult = await (0, pointhub_client_1.memberCheck)(id, password);
         console.log('PointHub 응답:', JSON.stringify(phResult));
         // PointHub 인증 실패
-        if (phResult.result !== 'success') {
-            throw new https_2.HttpsError('unauthenticated', phResult.message || 'PointHub 인증에 실패했습니다.');
+        if (!phResult.success) {
+            const errorMsg = `[${phResult.code}] ${phResult.message || 'PointHub 인증에 실패했습니다.'}`;
+            console.log('PointHub 인증 실패:', errorMsg);
+            throw new https_2.HttpsError('unauthenticated', errorMsg);
         }
         // 2. Firebase Auth 계정 확인/생성
         const email = `${id}@pointhub.local`; // PointHub ID를 이메일 형식으로 변환
@@ -137,7 +140,7 @@ exports.pointHubLogin = (0, https_1.onCall)(async (request) => {
                 firebaseUser = await firebase_config_1.default.auth().createUser({
                     email: email,
                     password: password,
-                    displayName: ((_a = phResult.data) === null || _a === void 0 ? void 0 : _a.nickname) || id
+                    displayName: id // PointHub API는 nickname을 반환하지 않으므로 id 사용
                 });
                 console.log('새 Firebase 사용자 생성됨:', firebaseUser.uid);
                 // 사용자 프로필 초기화
@@ -159,10 +162,8 @@ exports.pointHubLogin = (0, https_1.onCall)(async (request) => {
                     wallet: userWallet,
                     pointHub: {
                         id: id,
-                        mbid: (_b = phResult.data) === null || _b === void 0 ? void 0 : _b.mbid,
-                        mbid2: (_c = phResult.data) === null || _c === void 0 ? void 0 : _c.mbid2,
-                        nickname: (_d = phResult.data) === null || _d === void 0 ? void 0 : _d.nickname,
-                        level: (_e = phResult.data) === null || _e === void 0 ? void 0 : _e.level
+                        mbid: (_a = phResult.data) === null || _a === void 0 ? void 0 : _a.mbid,
+                        mbid2: (_b = phResult.data) === null || _b === void 0 ? void 0 : _b.mbid2
                     }
                 });
                 // 회원가입 보너스 Ledger 기록
@@ -182,12 +183,27 @@ exports.pointHubLogin = (0, https_1.onCall)(async (request) => {
                 throw error;
             }
         }
-        // 3. Custom Token 생성
+        // 3. PointHub GPoint 잔액 조회
+        let gpointBalance = 0;
+        if (((_c = phResult.data) === null || _c === void 0 ? void 0 : _c.mbid) && ((_d = phResult.data) === null || _d === void 0 ? void 0 : _d.mbid2)) {
+            console.log('GPoint 잔액 조회 중...');
+            const gpointResult = await (0, pointhub_client_1.gpointSelect)(phResult.data.mbid, phResult.data.mbid2);
+            if (gpointResult.success && gpointResult.data) {
+                gpointBalance = gpointResult.data.balance || 0;
+                console.log('GPoint 잔액:', gpointBalance);
+            }
+            else {
+                console.log('GPoint 잔액 조회 실패 (기본값 0 사용):', gpointResult.message);
+            }
+        }
+        // 4. Custom Token 생성
         const customToken = await firebase_config_1.default.auth().createCustomToken(firebaseUser.uid, {
             pointHubId: id,
-            mbid: (_f = phResult.data) === null || _f === void 0 ? void 0 : _f.mbid,
-            mbid2: (_g = phResult.data) === null || _g === void 0 ? void 0 : _g.mbid2
+            mbid: (_e = phResult.data) === null || _e === void 0 ? void 0 : _e.mbid,
+            mbid2: (_f = phResult.data) === null || _f === void 0 ? void 0 : _f.mbid2
         });
+        // 5. Firebase wallet에 GPoint 잔액 동기화
+        await firebase_config_1.rtdb.ref(`/users/${firebaseUser.uid}/wallet/usdt`).set(gpointBalance);
         console.log('=== pointHubLogin 완료 ===');
         return {
             success: true,
@@ -195,13 +211,14 @@ exports.pointHubLogin = (0, https_1.onCall)(async (request) => {
             user: {
                 uid: firebaseUser.uid,
                 email: email,
-                displayName: ((_h = phResult.data) === null || _h === void 0 ? void 0 : _h.nickname) || id,
+                displayName: id,
                 pointHub: {
                     id: id,
-                    mbid: (_j = phResult.data) === null || _j === void 0 ? void 0 : _j.mbid,
-                    mbid2: (_k = phResult.data) === null || _k === void 0 ? void 0 : _k.mbid2,
-                    nickname: (_l = phResult.data) === null || _l === void 0 ? void 0 : _l.nickname,
-                    level: (_m = phResult.data) === null || _m === void 0 ? void 0 : _m.level
+                    mbid: (_g = phResult.data) === null || _g === void 0 ? void 0 : _g.mbid,
+                    mbid2: (_h = phResult.data) === null || _h === void 0 ? void 0 : _h.mbid2
+                },
+                wallet: {
+                    gpoint: gpointBalance
                 }
             }
         };
@@ -503,6 +520,379 @@ exports.cubeGameSettlementScheduler = (0, scheduler_1.onSchedule)({
     catch (error) {
         console.error('Cube game settlement scheduling failed:', error);
     }
+});
+// ============================================
+// Gpoint 동기화 스케줄러 (PointHub → Firebase)
+// ============================================
+/**
+ * Gpoint 6시간 동기화 스케줄러
+ * UTC 00:00, 06:00, 12:00, 18:00에 실행
+ *
+ * PointHub에서 충전된 Gpoint를 Firebase wallet에 동기화
+ * GPorder 배치(:40)보다 먼저 실행되어 최신 잔액 반영
+ */
+exports.gpointSyncScheduler = (0, scheduler_1.onSchedule)({
+    schedule: "0 0,6,12,18 * * *", // UTC 00:00, 06:00, 12:00, 18:00
+    timeZone: "UTC",
+    region: "asia-northeast3"
+}, async () => {
+    var _a;
+    console.log('[Gpoint Sync] Starting 6-hour sync...');
+    try {
+        // 1. PointHub 데이터가 있는 모든 사용자 조회
+        const usersSnapshot = await firebase_config_1.rtdb.ref('/users').once('value');
+        if (!usersSnapshot.exists()) {
+            console.log('[Gpoint Sync] No users found');
+            return;
+        }
+        const usersData = usersSnapshot.val();
+        const userIds = Object.keys(usersData);
+        let syncedCount = 0;
+        let errorCount = 0;
+        const syncResults = [];
+        // 2. 각 사용자별로 Gpoint 동기화
+        for (const uid of userIds) {
+            const userData = usersData[uid];
+            const pointHubData = userData === null || userData === void 0 ? void 0 : userData.pointHub;
+            // PointHub 연동이 없는 사용자 스킵
+            if (!(pointHubData === null || pointHubData === void 0 ? void 0 : pointHubData.mbid) || !(pointHubData === null || pointHubData === void 0 ? void 0 : pointHubData.mbid2)) {
+                continue;
+            }
+            try {
+                // 현재 Firebase 잔액 조회
+                const currentBalance = ((_a = userData === null || userData === void 0 ? void 0 : userData.wallet) === null || _a === void 0 ? void 0 : _a.usdt) || 0;
+                // PointHub에서 Gpoint 잔액 조회
+                const gpointResult = await (0, pointhub_client_1.gpointSelect)(pointHubData.mbid, pointHubData.mbid2);
+                if (gpointResult.success && gpointResult.data) {
+                    const newBalance = gpointResult.data.balance || 0;
+                    // 잔액이 다를 경우에만 업데이트
+                    if (currentBalance !== newBalance) {
+                        await firebase_config_1.rtdb.ref(`/users/${uid}/wallet/usdt`).set(newBalance);
+                        // 동기화 로그 기록
+                        await firebase_config_1.rtdb.ref(`/gpoint_sync_logs/${uid}`).push({
+                            timestamp: Date.now(),
+                            oldBalance: currentBalance,
+                            newBalance: newBalance,
+                            diff: newBalance - currentBalance
+                        });
+                        console.log(`[Gpoint Sync] ${uid}: ${currentBalance} → ${newBalance} (diff: ${newBalance - currentBalance})`);
+                        syncResults.push({ uid, success: true, oldBalance: currentBalance, newBalance });
+                    }
+                    syncedCount++;
+                }
+                else {
+                    console.error(`[Gpoint Sync] Failed for ${uid}: ${gpointResult.message}`);
+                    syncResults.push({ uid, success: false, error: gpointResult.message });
+                    errorCount++;
+                }
+            }
+            catch (error) {
+                console.error(`[Gpoint Sync] Error for ${uid}:`, error);
+                syncResults.push({ uid, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+                errorCount++;
+            }
+            // API 호출 간 딜레이 (rate limiting 방지)
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        // 3. 배치 로그 기록
+        await firebase_config_1.rtdb.ref('/gpoint_sync_batch_logs').push({
+            timestamp: Date.now(),
+            totalUsers: userIds.length,
+            syncedCount,
+            errorCount,
+            results: syncResults.filter(r => r.oldBalance !== r.newBalance || !r.success) // 변경된 것만 기록
+        });
+        console.log(`[Gpoint Sync] Completed. Synced: ${syncedCount}, Errors: ${errorCount}`);
+    }
+    catch (error) {
+        console.error('[Gpoint Sync] Scheduler failed:', error);
+        // 에러 로그 기록
+        await firebase_config_1.rtdb.ref('/gpoint_sync_batch_logs').push({
+            timestamp: Date.now(),
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+/**
+ * [TEST ONLY] Gpoint 동기화 수동 실행 - 에뮬레이터 테스트용
+ */
+exports.testGpointSync = (0, https_1.onCall)(async (request) => {
+    var _a;
+    const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
+    if (!isEmulator) {
+        throw new https_2.HttpsError('failed-precondition', 'This function is only available in emulator mode');
+    }
+    try {
+        const usersSnapshot = await firebase_config_1.rtdb.ref('/users').once('value');
+        if (!usersSnapshot.exists()) {
+            return { success: true, message: 'No users found', syncedCount: 0 };
+        }
+        const usersData = usersSnapshot.val();
+        const userIds = Object.keys(usersData);
+        let syncedCount = 0;
+        let changedCount = 0;
+        const results = [];
+        for (const uid of userIds) {
+            const userData = usersData[uid];
+            const pointHubData = userData === null || userData === void 0 ? void 0 : userData.pointHub;
+            if (!(pointHubData === null || pointHubData === void 0 ? void 0 : pointHubData.mbid) || !(pointHubData === null || pointHubData === void 0 ? void 0 : pointHubData.mbid2)) {
+                continue;
+            }
+            const currentBalance = ((_a = userData === null || userData === void 0 ? void 0 : userData.wallet) === null || _a === void 0 ? void 0 : _a.usdt) || 0;
+            const gpointResult = await (0, pointhub_client_1.gpointSelect)(pointHubData.mbid, pointHubData.mbid2);
+            if (gpointResult.success && gpointResult.data) {
+                const newBalance = gpointResult.data.balance || 0;
+                const changed = currentBalance !== newBalance;
+                if (changed) {
+                    await firebase_config_1.rtdb.ref(`/users/${uid}/wallet/usdt`).set(newBalance);
+                    changedCount++;
+                }
+                results.push({
+                    uid,
+                    mbid: pointHubData.mbid,
+                    mbid2: pointHubData.mbid2,
+                    oldBalance: currentBalance,
+                    newBalance,
+                    changed
+                });
+                syncedCount++;
+            }
+        }
+        return {
+            success: true,
+            message: `Gpoint sync completed (TEST MODE)`,
+            totalUsers: userIds.length,
+            syncedCount,
+            changedCount,
+            results
+        };
+    }
+    catch (error) {
+        console.error('[TEST] Gpoint sync failed:', error);
+        throw new https_2.HttpsError('internal', error instanceof Error ? error.message : 'Unknown error');
+    }
+});
+// ============================================
+// GPorder 대기열 및 배치 처리
+// ============================================
+/**
+ * GPorder 대기열에 항목 추가
+ * 게임에서 매출 발생 시 호출
+ *
+ * @param uid 사용자 Firebase UID
+ * @param amount 금액
+ * @param orderType 03: 게임매출1 (20%), 04: 게임매출2 (골든벨 미당첨)
+ * @param gameType 게임 종류 (matching, goldenbell, cube 등)
+ * @param gameId 게임 ID
+ */
+async function addToGporderQueue(uid, amount, orderType, gameType, gameId) {
+    try {
+        // 사용자의 PointHub 정보 조회
+        const userSnapshot = await firebase_config_1.rtdb.ref(`/users/${uid}/pointHub`).once('value');
+        const pointHubData = userSnapshot.val();
+        if (!(pointHubData === null || pointHubData === void 0 ? void 0 : pointHubData.mbid) || !(pointHubData === null || pointHubData === void 0 ? void 0 : pointHubData.mbid2)) {
+            console.error(`[GPorder Queue] User ${uid} has no PointHub data`);
+            return false;
+        }
+        // 대기열에 추가
+        const queueItem = {
+            uid,
+            mbid: pointHubData.mbid,
+            mbid2: pointHubData.mbid2,
+            amount,
+            orderType,
+            gameType,
+            gameId,
+            createdAt: Date.now(),
+            status: 'pending'
+        };
+        await firebase_config_1.rtdb.ref('/gporder_queue').push(queueItem);
+        console.log(`[GPorder Queue] Added: ${uid}, amount: ${amount}, type: ${orderType}`);
+        return true;
+    }
+    catch (error) {
+        console.error('[GPorder Queue] Error adding to queue:', error);
+        return false;
+    }
+}
+/**
+ * GPorder 배치 처리 스케줄러
+ * UTC 00:40, 06:40, 12:40, 18:40에 실행
+ * 대기열의 모든 pending 항목을 모아서 PointHub API로 일괄 전송
+ */
+exports.gporderBatchScheduler = (0, scheduler_1.onSchedule)({
+    schedule: "40 0,6,12,18 * * *", // UTC 00:40, 06:40, 12:40, 18:40
+    timeZone: "UTC",
+    region: "asia-northeast3"
+}, async () => {
+    console.log('[GPorder Batch] Starting batch processing...');
+    try {
+        // 1. pending 상태의 모든 대기열 항목 조회
+        const queueSnapshot = await firebase_config_1.rtdb.ref('/gporder_queue')
+            .orderByChild('status')
+            .equalTo('pending')
+            .once('value');
+        if (!queueSnapshot.exists()) {
+            console.log('[GPorder Batch] No pending items in queue');
+            return;
+        }
+        const queueData = queueSnapshot.val();
+        const queueKeys = Object.keys(queueData);
+        console.log(`[GPorder Batch] Found ${queueKeys.length} pending items`);
+        // 2. GporderTransferItem 배열로 변환
+        const transferItems = [];
+        const processedKeys = [];
+        for (const key of queueKeys) {
+            const item = queueData[key];
+            transferItems.push({
+                mbid: item.mbid,
+                mbid2: item.mbid2,
+                amount: item.amount,
+                Ordertype: item.orderType,
+                memo: `${item.gameType}:${item.gameId}`
+            });
+            processedKeys.push(key);
+        }
+        if (transferItems.length === 0) {
+            console.log('[GPorder Batch] No items to transfer');
+            return;
+        }
+        // 3. 대기열 항목들을 'processing' 상태로 변경
+        const processingUpdates = {};
+        for (const key of processedKeys) {
+            processingUpdates[`/gporder_queue/${key}/status`] = 'processing';
+            processingUpdates[`/gporder_queue/${key}/processingStartedAt`] = Date.now();
+        }
+        await firebase_config_1.rtdb.ref().update(processingUpdates);
+        // 4. PointHub API 호출
+        console.log(`[GPorder Batch] Sending ${transferItems.length} items to PointHub...`);
+        const result = await (0, pointhub_client_1.gporderTransfer)(transferItems);
+        // 5. 결과에 따라 상태 업데이트
+        const resultUpdates = {};
+        const completedAt = Date.now();
+        if (result.success) {
+            console.log(`[GPorder Batch] Transfer successful: ${result.message}`);
+            for (const key of processedKeys) {
+                resultUpdates[`/gporder_queue/${key}/status`] = 'completed';
+                resultUpdates[`/gporder_queue/${key}/completedAt`] = completedAt;
+                resultUpdates[`/gporder_queue/${key}/result`] = {
+                    success: true,
+                    code: result.code,
+                    message: result.message
+                };
+            }
+        }
+        else {
+            console.error(`[GPorder Batch] Transfer failed: ${result.message}`);
+            for (const key of processedKeys) {
+                resultUpdates[`/gporder_queue/${key}/status`] = 'failed';
+                resultUpdates[`/gporder_queue/${key}/failedAt`] = completedAt;
+                resultUpdates[`/gporder_queue/${key}/result`] = {
+                    success: false,
+                    code: result.code,
+                    message: result.message
+                };
+            }
+        }
+        await firebase_config_1.rtdb.ref().update(resultUpdates);
+        // 6. 완료된 항목 로그 기록
+        await firebase_config_1.rtdb.ref('/gporder_batch_logs').push({
+            timestamp: completedAt,
+            itemCount: transferItems.length,
+            success: result.success,
+            code: result.code,
+            message: result.message
+        });
+        console.log(`[GPorder Batch] Batch processing completed. Success: ${result.success}`);
+    }
+    catch (error) {
+        console.error('[GPorder Batch] Batch processing failed:', error);
+        // 에러 로그 기록
+        await firebase_config_1.rtdb.ref('/gporder_batch_logs').push({
+            timestamp: Date.now(),
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+/**
+ * [TEST ONLY] GPorder 대기열 수동 처리 - 에뮬레이터 테스트용
+ */
+exports.testProcessGporderQueue = (0, https_1.onCall)(async (request) => {
+    const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
+    if (!isEmulator) {
+        throw new https_2.HttpsError('failed-precondition', 'This function is only available in emulator mode');
+    }
+    try {
+        // pending 상태의 모든 대기열 항목 조회
+        const queueSnapshot = await firebase_config_1.rtdb.ref('/gporder_queue')
+            .orderByChild('status')
+            .equalTo('pending')
+            .once('value');
+        if (!queueSnapshot.exists()) {
+            return { success: true, message: 'No pending items in queue', itemCount: 0 };
+        }
+        const queueData = queueSnapshot.val();
+        const queueKeys = Object.keys(queueData);
+        // GporderTransferItem 배열로 변환
+        const transferItems = [];
+        for (const key of queueKeys) {
+            const item = queueData[key];
+            transferItems.push({
+                mbid: item.mbid,
+                mbid2: item.mbid2,
+                amount: item.amount,
+                Ordertype: item.orderType,
+                memo: `${item.gameType}:${item.gameId}`
+            });
+        }
+        // PointHub API 호출
+        const result = await (0, pointhub_client_1.gporderTransfer)(transferItems);
+        // 상태 업데이트
+        const updates = {};
+        for (const key of queueKeys) {
+            updates[`/gporder_queue/${key}/status`] = result.success ? 'completed' : 'failed';
+            updates[`/gporder_queue/${key}/processedAt`] = Date.now();
+            updates[`/gporder_queue/${key}/result`] = {
+                success: result.success,
+                code: result.code,
+                message: result.message
+            };
+        }
+        await firebase_config_1.rtdb.ref().update(updates);
+        return {
+            success: result.success,
+            message: result.message,
+            itemCount: transferItems.length,
+            code: result.code
+        };
+    }
+    catch (error) {
+        console.error('[TEST] GPorder queue processing failed:', error);
+        throw new https_2.HttpsError('internal', error instanceof Error ? error.message : 'Unknown error');
+    }
+});
+/**
+ * [TEST ONLY] GPorder 대기열에 테스트 항목 추가 - 에뮬레이터 테스트용
+ */
+exports.testAddToGporderQueue = (0, https_1.onCall)(async (request) => {
+    const isEmulator = process.env.FUNCTIONS_EMULATOR === 'true';
+    if (!isEmulator) {
+        throw new https_2.HttpsError('failed-precondition', 'This function is only available in emulator mode');
+    }
+    if (!request.auth) {
+        throw new https_2.HttpsError('unauthenticated', 'Authentication required');
+    }
+    const { amount, orderType, gameType, gameId } = request.data;
+    if (!amount || !orderType) {
+        throw new https_2.HttpsError('invalid-argument', 'amount and orderType are required');
+    }
+    const success = await addToGporderQueue(request.auth.uid, amount, orderType, gameType || 'test', gameId || `test-${Date.now()}`);
+    return {
+        success,
+        message: success ? 'Added to GPorder queue' : 'Failed to add to queue'
+    };
 });
 // Cryptocurrency price oracle - runs every 30 seconds
 exports.oracleSnapshot = (0, scheduler_1.onSchedule)({
